@@ -1,0 +1,15 @@
+Package: NobBS
+Title: Nowcasting by Bayesian Smoothing
+Version: 0.0.0.9000
+Author: Sarah McGough
+Maintainer: Sarah McGough <sfm341@gmail.com>
+Description: Make real-time estimates of cases based on incomplete time-stamped reporting data.
+Depends: R (>= 3.3.2)
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports:
+	dplyr,
+	rjags,
+	coda
+RoxygenNote: 6.1.1
