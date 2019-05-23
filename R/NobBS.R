@@ -19,6 +19,7 @@
 #' @import coda
 #' @import rjags
 #' @importFrom dplyr select
+#' @importFrom dplyr select_vars
 #' @importFrom magrittr "%>%"
 
 NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL, max_D=NULL, cutoff_D=NULL, 
