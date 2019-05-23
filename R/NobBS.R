@@ -134,8 +134,8 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
                     dispersion.prior.rate=specs$dispersion.prior[2])
   }
   
-  JAGSmodPois <- system.file("JAGS", "nowcastPois.txt", package="NobBS") # file.path(path.package('NobBS'),"nowcastPois.txt")
-  JAGSmodNB <- system.file("JAGS", "nowcastNB.txt", package="NobBS") #file.path(path.package('NobBS'),"nowcastNB.txt")
+  JAGSmodPois <- readLines(system.file("JAGS", "nowcastPois.txt", package="NobBS")) # file.path(path.package('NobBS'),"nowcastPois.txt")
+  JAGSmodNB <- readLines(system.file("JAGS", "nowcastNB.txt", package="NobBS")) #file.path(path.package('NobBS'),"nowcastNB.txt")
   
   nowcastmodel = jags.model(
     file = ifelse(specs[["dist"]]=="Poisson",JAGSmodPois,JAGSmodNB),
