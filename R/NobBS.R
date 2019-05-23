@@ -134,8 +134,8 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
                     dispersion.prior.rate=specs$dispersion.prior[2])
   }
   
-  JAGSmodPois <- file.path(path.package('NobBS'),"nowcastPois.txt")
-  JAGSmodNB <- file.path(path.package('NobBS'),"nowcastNB.txt")
+  JAGSmodPois <- system.file("JAGS", "nowcastPois.txt", package="NobBS") # file.path(path.package('NobBS'),"nowcastPois.txt")
+  JAGSmodNB <- system.file("JAGS", "nowcastNB.txt", package="NobBS") #file.path(path.package('NobBS'),"nowcastNB.txt")
   
   nowcastmodel = jags.model(
     file = ifelse(specs[["dist"]]=="Poisson",JAGSmodPois,JAGSmodNB),
@@ -174,7 +174,7 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   pi.logged.td3 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("pi.logged[3]",sep=""))))
   alpha.last <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("alpha[",t,sep=""))))
   tau2.alpha <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with("tau2.alpha")))
-
+  
   parameter_extract <- cbind(pi.logged.td1,pi.logged.td2,pi.logged.td3,
                              alpha.last,tau2.alpha)
   
@@ -183,4 +183,3 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   nowcast_results <<- list(estimates=estimates, nowcast.post.samps=nowcast.post.samps,params.post=parameter_extract)
   
 }
-
