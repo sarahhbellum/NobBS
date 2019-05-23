@@ -26,3 +26,4 @@ model
   # Prior for variance
   tau2.alpha ~ dgamma(alphat.shape.prior,alphat.rate.prior)
 }
+
