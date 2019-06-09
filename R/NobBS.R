@@ -56,6 +56,21 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   if ("Poisson"%in%(specs[["dist",exact=TRUE]])) { # if no distribution specified, take Poisson as default
     specs$dist <- "Poisson"
   } 
+  if (is.null(specs[["dist",exact=TRUE]])) {
+    specs$dist <- "Poisson"
+  }
+  if (is.null(specs[["alpha1.mean.prior",exact=TRUE]])) {
+    specs$alpha1.mean.prior <- 0
+  }
+  if (is.null(specs[["alpha1.prec.prior",exact=TRUE]])) {
+    specs$alpha1.prec.prior <- 0.001
+  }
+  if (is.null(specs[["alphat.shape.prior",exact=TRUE]])) {
+    specs$alphat.shape.prior <- 0.001
+  }
+  if (is.null(specs[["alphat.rate.prior",exact=TRUE]])) {
+    specs$alphat.rate.prior <- 0.001
+  }
   if (is.null(specs[["beta.priors",exact=TRUE]])) {
     specs$beta.priors <- rep(0.1, times=(max_D)+1)
   }
@@ -65,8 +80,26 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   if (is.null(specs[["param_names",exact=TRUE]])&(specs[["dist"]]=="NB")) {
     specs$param_names <- c( "lambda","alpha","beta.logged","tau2.alpha","sum.n","r")
   }
+  if (is.null(specs[["conf",exact=TRUE]])) {
+    specs$conf <- 0.95
+  }
   if (is.null(specs[["dispersion.prior",exact=TRUE]])&(specs[["dist"]]=="NB")) {
     specs$dispersion.prior <- c(0.001,0.001)
+  }
+  if (is.null(specs[["nAdapt",exact=TRUE]])) {
+    specs$nAdapt <- 1000
+  }
+  if (is.null(specs[["nChains",exact=TRUE]])) {
+    specs$nChains <- 1
+  }
+  if (is.null(specs[["nBurnin",exact=TRUE]])) {
+    specs$nBurnin <- 1000
+  }
+  if (is.null(specs[["nThin",exact=TRUE]])) {
+    specs$nThin <- 1
+  }
+  if (is.null(specs[["nSamp",exact=TRUE]])) {
+    specs$nSamp <- 10000
   }
   
   # Prep the data: filter only to observable cases reported at or before "now"
