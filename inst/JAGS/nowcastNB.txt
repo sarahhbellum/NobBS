@@ -5,12 +5,11 @@ model
   for( t in 1:T ){
   for(d in 0:D){
   n[t,(d+1)] ~ dnegbin(p[t,(d+1)],r)
-  log(lambda[t,(d+1)]) <- alpha[t] + pi.logged[(d+1)]
+  log(lambda[t,(d+1)]) <- alpha[t] + beta.logged[(d+1)]
   # Conversions
   p[t,(d+1)] <- r/(r+lambda[t,(d+1)])
   }
   sum.n[t] <- sum(n[t,])
-  sum.lambda[t] <- sum(lambda[t,])
   }
   # Prior for neg binomial rate
   r ~ dgamma(dispersion.prior.shape,dispersion.prior.rate)
@@ -20,10 +19,9 @@ model
   alpha[t] ~ dnorm(alpha[t-1],tau2.alpha)
   }
   ## Prior for beta
-  pi.logged <- log(pi)
-  pi ~ ddirch(beta.priors)
+  beta.logged <- log(beta)
+  beta ~ ddirch(beta.priors)
   
   # Prior for variance
   tau2.alpha ~ dgamma(alphat.shape.prior,alphat.rate.prior)
 }
-
