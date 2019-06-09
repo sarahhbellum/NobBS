@@ -8,7 +8,7 @@
 #' @param moving_window Size of moving window for estimation of cases. The moving window size should be specified in the same date units as the reporting data (i.e. specify 7 to indicate 7 days, 7 weeks, etc). Default: NULL, i.e. takes all historical dates into consideration.
 #' @param max_D Maximum possible delay observed or considered for estimation of the delay distribution. Default: (length of unique dates in time series)-1
 #' @param cutoff_D Consider only delays d<=\code{max_D}? Default: TRUE. If \code{cutoff_D=TRUE}, delays beyond \code{max_D} are ignored. If \code{cutoff_D=FALSE}, \code{max_D} is interpreted as delays>=\code{max_D} but within the moving window given by \code{moving_window}.
-#' @param specs A list with arguments specifying the Bayesian model used: \code{dist} (Default: "Poisson"), \code{beta.priors} (Default: 0.1 for each delay d), \code{nSamp} (Default: 10000), \code{nBurnin} (Default: 1000), \code{nAdapt} (Default: 1000), \code{nChains} (Default: 1), \code{nChains} (Default: 1), \code{nThin} (Default: 1), \code{alphat.shape.prior} (Default: 0.001), \code{alphat.rate.prior} (Default: 0.001), \code{alpha1.mean.prior} (Default: 0), \code{alpha1.prec.prior} (Default: 0.001), \code{dispersion.prior} (Default: NULL, i.e. no dispersion. Otherwise, enter c(shape,rate) for a Gamma distribution.), \code{conf} (Default: 0.95), \code{param_names} (Default: NULL, i.e. output for all parameters is provided)
+#' @param specs A list with arguments specifying the Bayesian model used: \code{dist} (Default: "Poisson"), \code{beta.priors} (Default: 0.1 for each delay d), \code{nSamp} (Default: 10000), \code{nBurnin} (Default: 1000), \code{nAdapt} (Default: 1000), \code{nChains} (Default: 1), \code{nChains} (Default: 1), \code{nThin} (Default: 1), \code{alphat.shape.prior} (Default: 0.001), \code{alphat.rate.prior} (Default: 0.001), \code{alpha1.mean.prior} (Default: 0), \code{alpha1.prec.prior} (Default: 0.001), \code{dispersion.prior} (Default: NULL, i.e. no dispersion. Otherwise, enter c(shape,rate) for a Gamma distribution.), \code{conf} (Default: 0.95), \code{param_names} (Default: NULL, i.e. output for all parameters is provided: alpha[T], beta[d], lambda[T,d],and tau2.alpha). See McGough et al. 2018 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of parameters.
 #' @return \code{NobBS} returns the list \code{nowcast_results} with the following elements: \code{estimates}, a Tx3 data frame containing estimates for each date in the time series (up to "now") with corresponding prediction intervals; \code{nowcast.post.samples}, vector of 10,000 samples from the posterior predictive distribution of the nowcast, and \code{params.post}, a 10,000x5 dataframe containing 10,000 posterior samples for each of the following parameters: \code{beta0}, \code{beta1}, \code{beta2}, \code{alpha[T]}, \code{tau2-alpha}.
 #' @examples
 #' Load the data
@@ -20,6 +20,7 @@
 #' @import rjags
 #' @importFrom dplyr select
 #' @importFrom dplyr select_vars
+#' @importFrom dplyr starts_with
 #' @importFrom magrittr "%>%"
 
 NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL, max_D=NULL, cutoff_D=NULL, 
@@ -59,10 +60,10 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
     specs$beta.priors <- rep(0.1, times=(max_D)+1)
   }
   if (is.null(specs[["param_names",exact=TRUE]])&(specs[["dist"]]=="Poisson")) {
-    specs$param_names <- c( "lambda","alpha","pi.logged","tau2.alpha","n","pi","sum.n","sum.lambda")
+    specs$param_names <- c( "lambda","alpha","beta.logged","tau2.alpha","sum.n")
   }
   if (is.null(specs[["param_names",exact=TRUE]])&(specs[["dist"]]=="NB")) {
-    specs$param_names <- c( "lambda","alpha","pi.logged","tau2.alpha","n","pi","sum.n","sum.lambda","r")
+    specs$param_names <- c( "lambda","alpha","beta.logged","tau2.alpha","sum.n","r")
   }
   if (is.null(specs[["dispersion.prior",exact=TRUE]])&(specs[["dist"]]=="NB")) {
     specs$dispersion.prior <- c(0.001,0.001)
@@ -100,10 +101,10 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   # Run the JAGS model
   
   if(specs[["dist"]]=="Poisson"){
-    params=c( "lambda","alpha","pi.logged","tau2.alpha","n","pi","sum.n","sum.lambda")
+    params=c( "lambda","alpha","beta.logged","tau2.alpha","n","sum.n","sum.lambda")
   }
   if(specs[["dist"]]=="NB"){
-    params=c( "lambda","alpha","pi.logged","tau2.alpha","n","pi","sum.n","sum.lambda","r")
+    params=c( "lambda","alpha","beta.logged","tau2.alpha","n","sum.n","sum.lambda","r")
   }
   nAdapt = specs[["nAdapt"]] #default = 1000
   nChains = specs[["nChains"]] # default=1
@@ -150,7 +151,7 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   
   lambda.output = coda.samples(
     model = nowcastmodel,
-    variable.names =  specs$param_names, #c("lambda","alpha","pi.logged","tau2.alpha","n","pi","sum.nt","sum.lambda"), # extract only lambda[t,d] of week now w/ 0 delay   ## #params,
+    variable.names =  if("sum.n"%in%specs$param_names) c(specs$param_names) else c(specs$param_names,"sum.n"),
     n.iter = nIter,
     thin = nThin)
   
@@ -171,17 +172,37 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   
   t <- now.T 
   
-  pi.logged.td1 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("pi.logged[1]",sep=""))))
-  pi.logged.td2 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("pi.logged[2]",sep=""))))
-  pi.logged.td3 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("pi.logged[3]",sep=""))))
-  alpha.last <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("alpha[",t,sep=""))))
-  tau2.alpha <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with("tau2.alpha")))
+  parameter_extract <- matrix(NA, nrow=10000)
   
-  parameter_extract <- cbind(pi.logged.td1,pi.logged.td2,pi.logged.td3,
-                             alpha.last,tau2.alpha)
+  if("lambda"%in%specs$param_names){
+    parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("lambda[",t,",",sep="")))))
+  }
+  if("beta.logged"%in%specs$param_names){
+    betas.logged<- matrix(NA,nrow=10000,ncol=(max_D+1))
+    dimnames(betas.logged) = list(NULL,c(paste("Beta",c(0:max_D))))
+    for(d in 0:max_D){
+      betas.logged[,(d+1)] <- (mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("beta.logged[",(d+1),"]",sep="")))))[,1]
+    }
+    parameter_extract <- cbind(parameter_extract,betas.logged)
+  }
+  if("alpha"%in%specs$param_names){
+    parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("alpha[",t,sep="")))))
+  }
+  if("tau2.alpha"%in%specs$param_names){
+    parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with("tau2.alpha"))))
+  }
+  
+  #log.beta.td1 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("beta.logged[1]",sep=""))))
+  #log.beta.td2 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("beta.logged[2]",sep=""))))
+  #log.beta.td3 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("beta.logged[3]",sep=""))))
+  #alpha.last <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("alpha[",t,sep=""))))
+  #tau2.alpha <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with("tau2.alpha")))
+  
+  #parameter_extract <- cbind(pi.logged.td1,pi.logged.td2,pi.logged.td3,
+   #                          alpha.last,tau2.alpha)
   
   nowcast.post.samps <- (mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("sum.n[",t,sep="")))))[,1]
   
-  nowcast_results <<- list(estimates=estimates, nowcast.post.samps=nowcast.post.samps,params.post=parameter_extract)
+  nowcast_results <<- list(estimates=estimates, nowcast.post.samps=nowcast.post.samps,params.post=parameter_extract[2:ncol(parameter_extract)])
   
 }
