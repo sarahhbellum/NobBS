@@ -104,8 +104,7 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   
   # Warnings
   if(max_D>(moving_window-1)){
-    print("Maximum delay cannot be greater than the length of the moving window minus 1 time unit")
-    break
+    stop("Maximum delay cannot be greater than the length of the moving window minus 1 time unit")
   }
   
   # Prep the data: filter only to observable cases reported at or before "now"
@@ -121,8 +120,7 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   }
   
   if(range(realtime.data$week.t)[2]!=now.T){
-    print("stop!")
-    break
+    stop("Stop! Check that you have observations for the full range of dates in the time series.")
   }
   
   # Build the reporting triangle, fill with NAs where unobservable
