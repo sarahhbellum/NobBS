@@ -1,10 +1,10 @@
 #' Produce smooth Bayesian nowcasts of incomplete, time-stamped reporting data.
 #' 
 #' @param data A time series of reporting data in line list format (one row per case), with a column \code{onset_date} indicating date of case onset, and a column \code{report_date} indicating date of case report.
-#' @param now An object of class \code{Date} indicating the date at which to perform the nowcast.
+#' @param now An object of datatype \code{Date} indicating the date at which to perform the nowcast.
 #' @param units Time scale of reporting. Options: "1 day", "1 week".
-#' @param onset_date In quotations, the name of the column of class \code{Date} designating the date of case onset. e.g. "onset_week"
-#' @param report_date In quotations, he name of the column of class \code{Date} designating the date of case report. e.g. "report_week"
+#' @param onset_date In quotations, the name of the column of datatype \code{Date} designating the date of case onset. e.g. "onset_week"
+#' @param report_date In quotations, the name of the column of datatype \code{Date} designating the date of case report. e.g. "report_week"
 #' @param moving_window Size of moving window for estimation of cases. The moving window size should be specified in the same date units as the reporting data (i.e. specify 7 to indicate 7 days, 7 weeks, etc). Default: NULL, i.e. takes all historical dates into consideration.
 #' @param max_D Maximum possible delay observed or considered for estimation of the delay distribution. Default: (length of unique dates in time series)-1
 #' @param cutoff_D Consider only delays d<=\code{max_D}? Default: TRUE. If \code{cutoff_D=TRUE}, delays beyond \code{max_D} are ignored. If \code{cutoff_D=FALSE}, \code{max_D} is interpreted as delays>=\code{max_D} but within the moving window given by \code{moving_window}.
