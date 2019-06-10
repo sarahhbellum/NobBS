@@ -14,13 +14,13 @@ NobBS(data, now, units, onset_date, report_date, moving_window = NULL,
 \arguments{
 \item{data}{A time series of reporting data in line list format (one row per case), with a column \code{onset_date} indicating date of case onset, and a column \code{report_date} indicating date of case report.}
 
-\item{now}{An object of class \code{Date} indicating the date at which to perform the nowcast.}
+\item{now}{An object of datatype \code{Date} indicating the date at which to perform the nowcast.}
 
 \item{units}{Time scale of reporting. Options: "1 day", "1 week".}
 
-\item{onset_date}{In quotations, the name of the column of class \code{Date} designating the date of case onset. e.g. "onset_week"}
+\item{onset_date}{In quotations, the name of the column of datatype \code{Date} designating the date of case onset. e.g. "onset_week"}
 
-\item{report_date}{In quotations, he name of the column of class \code{Date} designating the date of case report. e.g. "report_week"}
+\item{report_date}{In quotations, the name of the column of datatype \code{Date} designating the date of case report. e.g. "report_week"}
 
 \item{moving_window}{Size of moving window for estimation of cases. The moving window size should be specified in the same date units as the reporting data (i.e. specify 7 to indicate 7 days, 7 weeks, etc). Default: NULL, i.e. takes all historical dates into consideration.}
 
