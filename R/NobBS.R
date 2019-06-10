@@ -39,6 +39,11 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
                     nBurnin=1000,
                     nThin=1,
                     nSamp=10000)) {
+  # Check that "now" is entered as a Date
+  if(inherits(now, "Date")==FALSE){
+    stop("'Now' argument must be of datatype Date (as.Date)")
+  }
+  
   # Print date
   print(paste("Computing a nowcast for ",now))
   # Define "T", the length of dates between the first date of data and "now", making sure that "T" is unaffected by skipped-over dates in the time series
