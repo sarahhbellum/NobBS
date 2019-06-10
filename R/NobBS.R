@@ -249,6 +249,6 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   
   nowcast.post.samps <- (mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("sum.n[",t,sep="")))))[,1]
   
-  nowcast_results <<- list(estimates=estimates, nowcast.post.samps=nowcast.post.samps,params.post=parameter_extract[2:ncol(parameter_extract)])
+  nowcast_results <<- list(estimates=estimates, nowcast.post.samps=nowcast.post.samps,params.post=parameter_extract[,2:ncol(parameter_extract)])
   
 }
