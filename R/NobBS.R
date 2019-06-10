@@ -39,6 +39,7 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
                     nBurnin=1000,
                     nThin=1,
                     nSamp=10000)) {
+  
   # Check that "now" is entered as a Date
   if(inherits(now, "Date")==FALSE){
     stop("'Now' argument must be of datatype Date (as.Date)")
@@ -50,6 +51,9 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   now.T <- length(seq(min(data[,onset_date]),as.Date(now),by=units))
   
   # Check the default arguments
+  if (is.null(moving_window)) {
+    moving_window <- now.T
+  }
   if (is.null(max_D)) {
     max_D <- now.T-1
   }
