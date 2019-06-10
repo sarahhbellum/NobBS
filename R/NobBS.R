@@ -102,6 +102,12 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
     specs$nSamp <- 10000
   }
   
+  # Warnings
+  if(max_D>(moving_window-1)){
+    print("Maximum delay cannot be greater than the length of the moving window minus 1 time unit")
+    break
+  }
+  
   # Prep the data: filter only to observable cases reported at or before "now"
   unit.num <- switch(units, "1 day"=1,"1 week"=7)
   w.days <- max((moving_window-1)*unit.num,(now.T-1)*unit.num) # moving window converted to days
