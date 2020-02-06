@@ -5,11 +5,12 @@
 \title{Produce smooth Bayesian nowcasts of incomplete, time-stamped reporting data.}
 \usage{
 NobBS(data, now, units, onset_date, report_date, moving_window = NULL,
-  max_D = NULL, cutoff_D = NULL, specs = list(dist = c("Poisson",
-  "NB"), alpha1.mean.prior = 0, alpha1.prec.prior = 0.001,
-  alphat.shape.prior = 0.001, alphat.rate.prior = 0.001, beta.priors =
-  NULL, param_names = NULL, conf = 0.95, dispersion.prior = NULL, nAdapt =
-  1000, nChains = 1, nBurnin = 1000, nThin = 1, nSamp = 10000))
+  max_D = NULL, cutoff_D = NULL, proportion_reported = 1,
+  specs = list(dist = c("Poisson", "NB"), alpha1.mean.prior = 0,
+  alpha1.prec.prior = 0.001, alphat.shape.prior = 0.001, alphat.rate.prior
+  = 0.001, beta.priors = NULL, param_names = NULL, conf = 0.95,
+  dispersion.prior = NULL, nAdapt = 1000, nChains = 1, nBurnin = 1000,
+  nThin = 1, nSamp = 10000))
 }
 \arguments{
 \item{data}{A time series of reporting data in line list format (one row per case), with a column \code{onset_date} indicating date of case onset, and a column \code{report_date} indicating date of case report.}
@@ -22,23 +23,36 @@ NobBS(data, now, units, onset_date, report_date, moving_window = NULL,
 
 \item{report_date}{In quotations, the name of the column of datatype \code{Date} designating the date of case report. e.g. "report_week"}
 
-\item{moving_window}{Size of moving window for estimation of cases. The moving window size should be specified in the same date units as the reporting data (i.e. specify 7 to indicate 7 days, 7 weeks, etc). Default: NULL, i.e. takes all historical dates into consideration.}
+\item{moving_window}{Size of moving window for estimation of cases (numeric). The moving window size should be specified in the same date units as the reporting data (i.e. specify 7 to indicate 7 days, 7 weeks, etc). Default: NULL, i.e. takes all historical dates into consideration.}
 
-\item{max_D}{Maximum possible delay observed or considered for estimation of the delay distribution. Default: (length of unique dates in time series)-1}
+\item{max_D}{Maximum possible delay observed or considered for estimation of the delay distribution (numeric). Default: (length of unique dates in time series)-1 ; or, if a moving window is specified, (size of moving window)-1}
 
 \item{cutoff_D}{Consider only delays d<=\code{max_D}? Default: TRUE. If \code{cutoff_D=TRUE}, delays beyond \code{max_D} are ignored. If \code{cutoff_D=FALSE}, \code{max_D} is interpreted as delays>=\code{max_D} but within the moving window given by \code{moving_window}.}
 
-\item{specs}{A list with arguments specifying the Bayesian model used: \code{dist} (Default: "Poisson"), \code{beta.priors} (Default: 0.1 for each delay d), \code{nSamp} (Default: 10000), \code{nBurnin} (Default: 1000), \code{nAdapt} (Default: 1000), \code{nChains} (Default: 1), \code{nChains} (Default: 1), \code{nThin} (Default: 1), \code{alphat.shape.prior} (Default: 0.001), \code{alphat.rate.prior} (Default: 0.001), \code{alpha1.mean.prior} (Default: 0), \code{alpha1.prec.prior} (Default: 0.001), \code{dispersion.prior} (Default: NULL, i.e. no dispersion. Otherwise, enter c(shape,rate) for a Gamma distribution.), \code{conf} (Default: 0.95), \code{param_names} (Default: NULL, i.e. output for all parameters is provided: c("lambda","alpha","beta.logged","tau2.alpha"). See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of these parameters.).}
+\item{proportion_reported}{A decimal greater than 0 and less than or equal to 1 representing the proportion of all cases expected to be reported. Default: 1, e.g. 100 percent of all cases will eventually be reported. For asymptomatic diseases where not all cases will ever be reported, or for outbreaks in which severe under-reporting is expected, change this to less than 1.}
+
+\item{specs}{A list with arguments specifying the Bayesian model used: \code{dist} (Default: "Poisson"), \code{beta.priors} (Default: 0.1 for each delay d), \code{nSamp} (Default: 10000), \code{nBurnin} (Default: 1000), \code{nAdapt} (Default: 1000), \code{nChains} (Default: 1), \code{nThin} (Default: 1), \code{alphat.shape.prior} (Default: 0.001), \code{alphat.rate.prior} (Default: 0.001), \code{alpha1.mean.prior} (Default: 0), \code{alpha1.prec.prior} (Default: 0.001), \code{dispersion.prior} (Default: NULL, i.e. no dispersion. Otherwise, enter c(shape,rate) for a Gamma distribution.), \code{conf} (Default: 0.95), \code{param_names} (Default: NULL, i.e. output for all parameters is provided: c("lambda","alpha","beta.logged","tau2.alpha"). See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of these parameters.).}
 }
 \value{
-\code{NobBS} returns the list \code{nowcast_results} with the following elements: \code{estimates}, a Tx3 data frame containing estimates for each date in the time series (up to "now") with corresponding prediction intervals; \code{nowcast.post.samples}, vector of 10,000 samples from the posterior predictive distribution of the nowcast, and \code{params.post}, a 10,000xN dataframe containing 10,000 posterior samples for the "N" parameters specified in specs[["param_names"]]. See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of parameters.
+\code{NobBS} returns the list with the following elements: \code{estimates}, a 5-column data frame containing estimates for each date in the window of predictions (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{estimates.inflated}, a Tx4 data frame containing estimates inflated by the proportion_reported for each date in the time series (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{nowcast.post.samples}, vector of 10,000 samples from the posterior predictive distribution of the nowcast, and \code{params.post}, a 10,000xN dataframe containing 10,000 posterior samples for the "N" parameters specified in specs[["param_names"]]. See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of parameters.
 }
 \description{
-Produce smooth Bayesian nowcasts of incomplete, time-stamped reporting data.
+Nowcasting is useful to estimate the true number of cases when they are unknown or incomplete
+in the present because of reporting delays. NobBS is a Bayesian nowcasting approach that learns from the
+reporting delay distribution as well as the temporal evolution of the epidemic curve to estimate the number of
+occurred but not yet reported cases for a given date.
 }
+\section{Notes}{
+
+NobBS requires that JAGS (Just Another Gibbs Sampler) is downloaded to the system.
+JAGS can be downloaded at <http://mcmc-jags.sourceforge.net/>.
+}
+
 \examples{
-Load the data
+# Load the data
 data(denguedat)
-Perform default NobBS assuming Poisson distribution, vague priors, and default specifications.
-NobBS(denguedat, as.Date("1990-10-01"),units="1 week",onset_date="onset_week",report_date="report_week")
+# Perform default NobBS assuming Poisson distribution, vague priors, and default specifications.
+nowcast <- NobBS(denguedat, as.Date("1990-04-09"),units="1 week",onset_date="onset_week",
+report_date="report_week")
+nowcast$estimates
 }

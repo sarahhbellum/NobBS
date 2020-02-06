@@ -1,15 +1,20 @@
 Package: NobBS
 Title: Nowcasting by Bayesian Smoothing
-Version: 0.0.0.9000
-Author: Sarah McGough
-Maintainer: Sarah McGough <sfm341@gmail.com>
-Description: Make real-time estimates of cases based on incomplete time-stamped reporting data.
-Depends: R (>= 3.3.2)
+Version: 0.1.0
+Authors@R: c(
+    person("Sarah", "McGough", email = "sfm341@mail.harvard.edu", role = c("aut", "cre")),
+    person("Nicolas", "Menzies", email = "nmenzies@hsph.harvard.edu", role = "aut"),
+    person("Marc", "Lipsitch", email = "mlipsitc@hsph.harvard.edu", role = "aut"),
+    person("Michael", "Johansson", email = "mjohansson@cdc.gov", role = "aut")
+    )
+Description: A Bayesian approach to estimate the number of occurred-but-not-yet-reported cases from incomplete, time-stamped reporting data for disease outbreaks. NobBS learns the reporting delay distribution and the time evolution of the epidemic curve to produce smoothed nowcasts in both stable and time-varying case reporting settings. 
+Depends: R (>= 3.3.0)
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
 	dplyr,
 	rjags,
-	coda
+	coda,
+	magrittr
 RoxygenNote: 6.1.1
