@@ -30,10 +30,11 @@ Usage
 
 NobBS accepts a line list of case onset and case reporting dates as the input data, and users are required to specify:
 
--   `now`: The date at which the nowcast is to be performed
+-   `data`: A **data frame** containing the line list data
+-   `now`: The date at which the nowcast is to be performed (of class `Date`, e.g. `as.Date()`)
 -   `units`: The temporal unit of reporting, either "1 day" or "1 week"
--   `onset_date`: The `Date` column containing the date of case onset
--   `report_date`: The `Date` column containing the date of case report
+-   `onset_date`: A string indicating the `Date` column containing the date of case onset
+-   `report_date`: A string indicating the `Date` column containing the date of case report
 
 For example, in the data `denguedat`, cases are reported on a weekly basis:
 
@@ -55,10 +56,10 @@ For this dengue report line list, the user would specify `units`="1 week", `onse
 The user may optionally specify arguments such as:
 
 -   `moving_window`: The numeric size of the moving window used in the estimation of cases. The default option is `NULL`, i.e. no moving window, to consider all possible historical dates
--   `max_D`: The numeric maximum delay D to consider in the estimation of cases, in the same units as `units`. For example, if cases are known to be 100% reported within the first 10 weeks, then it would be reasonable to set `max_D` = 9 weeks. Even if there are longer delays in the data, the delay probability for long delays would be modeled as *P**r*(*D**e**l**a**y* ≥ 9*w**e**e**k**s*). Note that it is not possible to set the maximum delay to be longer than what is possible to observe in the data (e.g. one cannot set `max_D`=15 in a 12-week time series). By default, `max_D` is set equal to either:
+-   `max_D`: The numeric maximum delay D to consider in the estimation of cases, in the same units as `units`. For example, if cases are known to be 100% reported within the first 10 weeks, then it would be reasonable to set `max_D` = 9 weeks. Even if there are longer delays in the data, the delay probability for long delays would be modeled as Pr(*D**e**l**a**y* ≥ 9*w**e**e**k**s*). Note that it is not possible to set the maximum delay to be longer than what is possible to observe in the data (e.g. one cannot set `max_D`=15 in a 12-week time series). By default, `max_D` is set equal to either:
     -   the length of the reporting time series minus 1, e.g. if 27 weeks of reporting data are provided, `max_D`=26.
     -   the length of `moving_window`-1, if `moving_window` is specified.
--   `cutoff_D`: A logical argument (default: `TRUE`) indicating whether to ignore delays larger than `max_D`. For example, for a `moving_window` of 27 weeks and a `max_D` of 10 weeks, `cutoff_D = TRUE` would indicate that cases reported with an 11+ week delay would be ignored. Conversely, setting `cutoff_D=FALSE` would model delays longer than 10 weeks within the moving window as *P**r*(27*w**e**e**k**s* &gt; *D**e**l**a**y* ≥ 10*w**e**e**k**s*).
+-   `cutoff_D`: A logical argument (default: `TRUE`) indicating whether to ignore delays larger than `max_D`. For example, for a `moving_window` of 27 weeks and a `max_D` of 10 weeks, `cutoff_D = TRUE` would indicate that cases reported with an 11+ week delay would be ignored. Conversely, setting `cutoff_D=FALSE` would model delays longer than 10 weeks within the moving window as Pr(27*w**e**e**k**s* &gt; *D**e**l**a**y* ≥ 10*w**e**e**k**s*).
 -   `proportion_reported`: A decimal between (0, 1\] indicating the expected proportion reported. Default=1, meaning that 100% of cases are expected to be eventually reported. However, this may not be the case in all disease settings; for example, if the disease contributes to a number of asymptomatic cases that will not lead to detection by the health system, or if severe under-reporting is expected during a large outbreak. In these cases, the nowcast estimates will be inflated by 1/`proportion_reported`.
 
 ### Bayesian parameters
