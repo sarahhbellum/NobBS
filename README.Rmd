@@ -33,7 +33,7 @@ The development version of NobBS can be installed with:
 
 ``` r
 library(devtools) 
-install_github("sarahhbellum/NobBS") # do this 
+install_github("sarahhbellum/NobBS") 
 ```
 
 NobBS **requires** that [JAGS](http://mcmc-jags.sourceforge.net/) (Just Another Gibbs Sampler) is downloaded to the system or computer on which NobBS will run. Download JAGS here: http://mcmc-jags.sourceforge.net/. 
