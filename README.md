@@ -5,7 +5,7 @@ NobBS: Nowcasting by Bayesian Smoothing
 
 <!-- badges: start -->
 <!-- badges: end -->
-NobBS is Bayesian approach to estimate the number of occurred-but-not-yet-reported cases from incomplete, time-stamped reporting data for disease outbreaks. NobBS learns the reporting delay distribution and the time evolution of the epidemic curve to produce smoothed nowcasts in both stable and time-varying case reporting settings.
+NobBS is Bayesian approach to estimate the number of occurred-but-not-yet-reported cases from incomplete, time-stamped reporting data for disease outbreaks. NobBS learns the reporting delay distribution and the time evolution of the epidemic curve to produce smoothed nowcasts in both stable and time-varying case reporting settings. For details, see the pre-print by [McGough et al. 2019](https://www.biorxiv.org/content/10.1101/663823v1.full).
 
 Installation
 ------------
