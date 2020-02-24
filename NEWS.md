@@ -6,8 +6,9 @@ See `README.md` for a full tutorial on using the NobBS package.
 
 Updates to the development version include:
 
+-   A function for stratified Bayesian nowcasting, `NobBS.strat`
 -   An argument to specify the `proportion_reported` and inflate the estimated cases by that factor, important in outbreaks with severe under-reporting or asymptomatic cases.
--   Additional checks on impossible temporal combinations of moving window sizes, maximum delay D, and the length of the time series.
+-   Additional checks and warnings issued for impossible temporal combinations of moving window sizes, maximum delay D, and the length of the time series.
 -   Warning issued when a case onset week is skipped in the time series or is missing reports altogether.
 -   Plot examples
 
