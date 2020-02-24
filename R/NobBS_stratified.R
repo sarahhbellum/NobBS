@@ -1,6 +1,6 @@
 #' Stratified nowcasts of incomplete, time-stamped reporting data.
 #'
-#' Produces nowcasts stratified by a single variable of interest, e.g. by province/state/region or by age group.
+#' Produces nowcasts stratified by a single variable of interest, e.g. by geographic unit (province/state/region) or by age group.
 #'
 #' @param data A time series of reporting data in line list format (one row per case), with a column \code{onset_date} indicating date of case onset, and a column \code{report_date} indicating date of case report.
 #' @param now An object of datatype \code{Date} indicating the date at which to perform the nowcast.
@@ -13,13 +13,13 @@
 #' @param cutoff_D Consider only delays d<=\code{max_D}? Default: TRUE. If \code{cutoff_D=TRUE}, delays beyond \code{max_D} are ignored. If \code{cutoff_D=FALSE}, \code{max_D} is interpreted as delays>=\code{max_D} but within the moving window given by \code{moving_window}.
 #' @param proportion_reported A decimal greater than 0 and less than or equal to 1 representing the proportion of all cases expected to be reported. Default: 1, e.g. 100 percent of all cases will eventually be reported. For asymptomatic diseases where not all cases will ever be reported, or for outbreaks in which severe under-reporting is expected, change this to less than 1.
 #' @param specs A list with arguments specifying the Bayesian model used: \code{dist} (Default: "Poisson"), \code{beta.priors} (Default: 0.1 for each delay d), \code{nSamp} (Default: 10000), \code{nBurnin} (Default: 1000), \code{nAdapt} (Default: 1000), \code{nChains} (Default: 1), \code{nThin} (Default: 1), \code{alphat.shape.prior} (Default: 0.001), \code{alphat.rate.prior} (Default: 0.001), \code{alpha1.mean.prior} (Default: 0), \code{alpha1.prec.prior} (Default: 0.001), \code{dispersion.prior} (Default: NULL, i.e. no dispersion. Otherwise, enter c(shape,rate) for a Gamma distribution.), \code{conf} (Default: 0.95), \code{param_names} (Default: NULL, i.e. output for all parameters is provided: c("lambda","alpha","beta.logged","tau2.alpha"). See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of these parameters.).
-#' @return \code{NobBS} returns the list with the following elements: \code{estimates}, a 5-column data frame containing estimates for each date in the window of predictions (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{estimates.inflated}, a Tx4 data frame containing estimates inflated by the proportion_reported for each date in the time series (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{nowcast.post.samples}, vector of 10,000 samples from the posterior predictive distribution of the nowcast, and \code{params.post}, a 10,000xN dataframe containing 10,000 posterior samples for the "N" parameters specified in specs[["param_names"]]. See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of parameters.
+#' @return The function returns a list with the following elements: \code{estimates}, a 5-column data frame containing estimates for each date in the window of predictions (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{estimates.inflated}, a Tx4 data frame containing estimates inflated by the proportion_reported for each date in the time series (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{nowcast.post.samples}, vector of 10,000 samples from the posterior predictive distribution of the nowcast, and \code{params.post}, a 10,000xN dataframe containing 10,000 posterior samples for the "N" parameters specified in specs[["param_names"]]. See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of parameters.
 #' @examples
 #' # Load the data
 #' data(denguedat)
-#' # Perform stratified NobBS assuming Poisson distribution, vague priors, and default specifications.
-#' nowcast <- NobBS(denguedat, as.Date("1990-04-09"),units="1 week",onset_date="onset_week",
-#' report_date="report_week")
+#' # Perform stratified 'NobBS' assuming Poisson distribution, vague priors, and default specifications.
+#' nowcast <- NobBS.strat(denguedat, as.Date("1990-04-09"),units="1 week",onset_date="onset_week",
+#' report_date="report_week",strata="gender")
 #' nowcast$estimates
 #' @export
 #' @import coda
@@ -36,10 +36,10 @@
 #' @importFrom stats median quantile update
 #'
 #' @section Notes:
-#' NobBS requires that JAGS (Just Another Gibbs Sampler) is downloaded to the system.
+#' 'NobBS' requires that JAGS (Just Another Gibbs Sampler) is downloaded to the system.
 #' JAGS can be downloaded at <http://mcmc-jags.sourceforge.net/>.
 
-NobBS.strat <- function(data, now, units, onset_date, report_date, strata, moving_window=NULL, max_D=NULL, cutoff_D=NULL,
+NobBS.strat <- function(data, now, units, onset_date, report_date, strata, moving_window=NULL, max_D=NULL, cutoff_D=NULL, quiet=TRUE,
                         proportion_reported=1,
                         specs=list(
                           dist=c("Poisson","NB"),
@@ -76,7 +76,7 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
 
   # Define the strata
   strat <- unique(data[,strata])
-  P <- length(strat)
+  S <- length(strat)
 
   # Check the default arguments
   if (is.null(moving_window)) {
@@ -87,6 +87,12 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
   }
   if (is.null(cutoff_D)) {
     cutoff_D <- TRUE
+  }
+  if(quiet==TRUE){
+    progress.bar <- "none"
+  }
+  if(quiet==FALSE){
+    progress.bar <- "text"
   }
 
   # Check that proportion_reported is between 0,1
@@ -170,12 +176,12 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
 
   for (t in 1:now.T) {
     for (d in 0:max_D) {
-      for(p in 1:length(strat)){
-        reporting.triangle.strat[t, p, (d + 1)] <- nrow(realtime.data[which(realtime.data$week.t ==
+      for(s in 1:length(strat)){
+        reporting.triangle.strat[t, s, (d + 1)] <- nrow(realtime.data[which(realtime.data$week.t ==
                                                                               t & realtime.data$delay == d &
-                                                                              realtime.data[,strata] == strat[p]), ])
+                                                                              realtime.data[,strata] == strat[s]), ])
         if (now.T < (t + d)) {
-          reporting.triangle.strat[t, p, (d + 1)] <- NA
+          reporting.triangle.strat[t, s, (d + 1)] <- NA
         }
 
       }
@@ -198,9 +204,9 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
   nIter = nKeep * nThin
 
   if(specs[["dist"]]=="Poisson"){
-    dataList = list(T = now.T,
+    dataList = list(Today = now.T,
                     D = max_D,
-                    P = length(strat),
+                    S = length(strat),
                     n = reporting.triangle.strat,
                     alpha1.mean.prior=specs$alpha1.mean.prior,
                     alpha1.prec.prior=specs$alpha1.prec.prior,
@@ -210,9 +216,9 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
   }
 
   if(specs[["dist"]]=="NB"){
-    dataList = list(T = now.T,
+    dataList = list(Today = now.T,
                     D = max_D,
-                    P = length(strat),
+                    S = length(strat),
                     n = reporting.triangle.strat,
                     alpha1.mean.prior=specs$alpha1.mean.prior,
                     alpha1.prec.prior=specs$alpha1.prec.prior,
@@ -223,17 +229,18 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
                     dispersion.prior.rate=specs$dispersion.prior[2])
   }
 
-  JAGSmodPois <- (system.file("JAGS", "nowcastPois_strata.txt", package="NobBS")) # file.path(path.package('NobBS'),"nowcastPois.txt")
-  JAGSmodNB <- (system.file("JAGS", "nowcastNB_strata.txt", package="NobBS")) #file.path(path.package('NobBS'),"nowcastNB.txt")
+  JAGSmodPois_strat <- (system.file("JAGS", "nowcastPois_strata.txt", package="NobBS")) # file.path(path.package('NobBS'),"nowcastPois.txt")
+  JAGSmodNB_strat <- (system.file("JAGS", "nowcastNB_strata.txt", package="NobBS")) #file.path(path.package('NobBS'),"nowcastNB.txt")
 
   nowcastmodel = jags.model(
-    file = "nowcastPois_strata.txt", # ifelse(specs[["dist"]]=="Poisson",JAGSmodPois,JAGSmodNB),
+    file = ifelse(specs[["dist"]]=="Poisson",JAGSmodPois_strat,JAGSmodNB_strat), # test "nowcastPois_strata.txt"
     data = dataList,
     n.chains = nChains,
     n.adapt = nAdapt,
-    inits=list(.RNG.seed=1,.RNG.name="base::Super-Duper"))
+    inits=list(.RNG.seed=1,.RNG.name="base::Super-Duper"),
+    quiet=quiet)
 
-  update( object = nowcastmodel, n.iter = nBurnin )
+  update( object = nowcastmodel, n.iter = nBurnin , progress.bar = progress.bar)
 
   lambda.output = coda.samples(
     model = nowcastmodel,
@@ -247,24 +254,24 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
   # Extract all hindcasts and 95% credible intervals
   t.extract <- (now.T-(now.T-1)):(now.T) # nowcast all weeks up through the present
 
-  estimates <- array(NA, dim = c(now.T,4,P), dimnames=list(NULL,c("estimate","lower","upper","stratum"),strat))
+  estimates <- array(NA, dim = c(now.T,4,S), dimnames=list(NULL,c("estimate","lower","upper","stratum"),strat))
   for(v in t.extract){
-    for(p in 1:P){
-      estimates[v,1,p] <- median(mymod.dat[, grep(paste("sum.n[",v,",",p,"]",sep=""), colnames(mymod.dat), fixed=T)])
-      estimates[v,2,p] <- quantile((mymod.dat[, grep(paste("sum.n[",v,",",p,"]",sep=""), colnames(mymod.dat), fixed=T)]),probs = c((1-specs$conf)/2,1-((1-specs$conf)/2)))[1]
-      estimates[v,3,p] <- quantile((mymod.dat[, grep(paste("sum.n[",v,",",p,"]",sep=""), colnames(mymod.dat), fixed=T)]),probs = c((1-specs$conf)/2,1-((1-specs$conf)/2)))[2]
-      estimates[v,4,p] <- strat[p]
+    for(s in 1:S){
+      estimates[v,1,s] <- median(mymod.dat[, grep(paste("sum.n[",v,",",s,"]",sep=""), colnames(mymod.dat), fixed=TRUE)])
+      estimates[v,2,s] <- quantile((mymod.dat[, grep(paste("sum.n[",v,",",s,"]",sep=""), colnames(mymod.dat), fixed=TRUE)]),probs = c((1-specs$conf)/2,1-((1-specs$conf)/2)))[1]
+      estimates[v,3,s] <- quantile((mymod.dat[, grep(paste("sum.n[",v,",",s,"]",sep=""), colnames(mymod.dat), fixed=TRUE)]),probs = c((1-specs$conf)/2,1-((1-specs$conf)/2)))[2]
+      estimates[v,4,s] <- strat[s]
     }
   }
 
   # Estimates inflated by proportion reported
-  estimates.inflated <- array(NA, dim = c(now.T,4,P), dimnames=list(NULL,c("estimate","lower","upper","stratum"),strat))
+  estimates.inflated <- array(NA, dim = c(now.T,4,S), dimnames=list(NULL,c("estimate","lower","upper","stratum"),strat))
   for(v in t.extract){
-    for(p in 1:P){
-      estimates.inflated[v,1,p] <- median(mymod.dat[, grep(paste("sum.n[",v,",",p,"]",sep=""), colnames(mymod.dat), fixed=T)])/proportion_reported
-      estimates.inflated[v,2,p] <- quantile((mymod.dat[, grep(paste("sum.n[",v,",",p,"]",sep=""), colnames(mymod.dat), fixed=T)]),probs = c((1-specs$conf)/2,1-((1-specs$conf)/2)))[1]/proportion_reported
-      estimates.inflated[v,3,p] <- quantile((mymod.dat[, grep(paste("sum.n[",v,",",p,"]",sep=""), colnames(mymod.dat), fixed=T)]),probs = c((1-specs$conf)/2,1-((1-specs$conf)/2)))[2]/proportion_reported
-      estimates.inflated[v,4,p] <- strat[p]
+    for(s in 1:S){
+      estimates.inflated[v,1,s] <- median(mymod.dat[, grep(paste("sum.n[",v,",",s,"]",sep=""), colnames(mymod.dat), fixed=TRUE)])/proportion_reported
+      estimates.inflated[v,2,s] <- quantile((mymod.dat[, grep(paste("sum.n[",v,",",s,"]",sep=""), colnames(mymod.dat), fixed=TRUE)]),probs = c((1-specs$conf)/2,1-((1-specs$conf)/2)))[1]/proportion_reported
+      estimates.inflated[v,3,s] <- quantile((mymod.dat[, grep(paste("sum.n[",v,",",s,"]",sep=""), colnames(mymod.dat), fixed=TRUE)]),probs = c((1-specs$conf)/2,1-((1-specs$conf)/2)))[2]/proportion_reported
+      estimates.inflated[v,4,s] <- strat[s]
     }
   }
 
@@ -283,10 +290,10 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
   names(reported)[1] <- "onset_date"
   names(reported)[2] <- "stratum"
 
-  estimates <- data.frame(estimates, onset_date=rep(seq(as.Date(now)-w.days,as.Date(now),by=units),times=P)) %>%
+  estimates <- data.frame(estimates, onset_date=rep(seq(as.Date(now)-w.days,as.Date(now),by=units),times=S)) %>%
     left_join(reported,by=c("onset_date","stratum"))
 
-  estimates.inflated <- data.frame(estimates.inflated, onset_date=rep(seq(as.Date(now)-w.days,as.Date(now),by=units),times=P)) %>%
+  estimates.inflated <- data.frame(estimates.inflated, onset_date=rep(seq(as.Date(now)-w.days,as.Date(now),by=units),times=S)) %>%
     left_join(reported,by=c("onset_date","stratum"))
 
   t <- now.T
@@ -316,20 +323,3 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
   list(estimates=estimates,estimates.inflated=estimates.inflated, nowcast.post.samps=nowcast.post.samps,params.post=parameter_extract[,2:ncol(parameter_extract)])
 
 }
-
-# Plot/test
-nowcasts_strat <- NobBS.strat(data=data,now=now,units=units,onset_date=onset_date,
-                              report_date=report_date,strata="province",moving_window=20)
-
-nowcasts_strata <- data.frame(nowcasts_strat$estimates)
-
-ggplot(nowcasts_strata) + geom_line(aes(onset_date,estimate,col=stratum,linetype="Predicted")) +
-  geom_line(aes(onset_date,n.reported,col=stratum,linetype="Observed")) +
-  scale_linetype_manual(name="Cases",values=c("solid","longdash"))+
-  scale_colour_manual(name="Province",values=wes_palette("Darjeeling1",3))+
-  theme_classic()+
-  geom_ribbon(aes(fill=stratum,x = onset_date,ymin=nowcasts_strata$lower,
-                                    ymax=nowcasts_strata$upper),alpha=0.3)+
-  scale_fill_manual(name="Province",values=wes_palette("Darjeeling1",3))+
-  xlab("Case onset date") + ylab("Estimated cases") +
-  ggtitle("Observed and predicted 2019-nCoV cases at the week of nowcast \n(Feb 3, 2020) and prior weeks")

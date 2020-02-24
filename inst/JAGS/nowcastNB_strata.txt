@@ -5,10 +5,10 @@ model
   for( t in 1:Today ){
   for(s in 1:S){
   for(d in 0:D){
-  n[t,(d+1),s] ~ dnegbin(p[t,(d+1),s],r)
-  log(lambda[t,(d+1),s]) <- alpha[t,s] + beta.logged[(d+1)]
+  n[t,s,(d+1)] ~ dnegbin(p[t,s,(d+1)],r)
+  log(lambda[t,s,(d+1)]) <- alpha[t,s] + beta.logged[(d+1)]
   # Conversions
-  p[t,(d+1),s] <- r/(r+lambda[t,(d+1),s])
+  p[t,s,(d+1)] <- r/(r+lambda[t,s,(d+1)])
   }
   sum.n[t,s] <- sum(n[t,s,])
   }
