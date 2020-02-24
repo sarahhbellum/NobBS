@@ -1,0 +1,29 @@
+
+model
+{
+  # Likelihood
+  for( t in 1:Today ){
+  for(s in 1:S){
+  for(d in 0:D){
+  n[t,(d+1),s] ~ dpois(lambda[t,(d+1),s])
+  log(lambda[t,(d+1),s]) <- alpha[t,s] + beta.logged[(d+1)]
+  }
+  sum.n[t,s] <- sum(n[t,s,])
+  sum.lambda[t,s] <- sum(lambda[t,s,])
+  }
+  }
+  for( s in 1:S ){
+  # Prior for alpha
+  alpha[1,s] ~ dnorm(alpha1.mean.prior, alpha1.prec.prior)
+  for( t in 2:Today ){
+  alpha[t,s] ~ dnorm(alpha[t-1,s],tau2.alpha)
+  }
+  }
+  ## Prior for beta
+  beta.logged <- log(beta)
+  beta ~ ddirch(beta.priors)
+  
+  # Prior for variance
+  tau2.alpha ~ dgamma(alphat.shape.prior,alphat.rate.prior)
+}
+

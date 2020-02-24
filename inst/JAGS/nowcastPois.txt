@@ -2,7 +2,7 @@
 model
 {
   # Likelihood
-  for( t in 1:T ){
+  for( t in 1:Today ){
   for(d in 0:D){
   n[t,(d+1)] ~ dpois(lambda[t,(d+1)])
   log(lambda[t,(d+1)]) <- alpha[t] + beta.logged[(d+1)]
@@ -12,7 +12,7 @@ model
   }
   # Prior for alpha
   alpha[1] ~ dnorm(alpha1.mean.prior, alpha1.prec.prior)
-  for( t in 2:T ){
+  for( t in 2:Today ){
   alpha[t] ~ dnorm(alpha[t-1],tau2.alpha)
   }
   ## Prior for beta

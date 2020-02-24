@@ -7,8 +7,9 @@ Authors@R: c(
     person("Marc", "Lipsitch", email = "mlipsitc@hsph.harvard.edu", role = "aut"),
     person("Michael", "Johansson", email = "mjohansson@cdc.gov", role = "aut")
     )
-Description: A Bayesian approach to estimate the number of occurred-but-not-yet-reported cases from incomplete, time-stamped reporting data for disease outbreaks. NobBS learns the reporting delay distribution and the time evolution of the epidemic curve to produce smoothed nowcasts in both stable and time-varying case reporting settings. 
+Description: A Bayesian approach to estimate the number of occurred-but-not-yet-reported cases from incomplete, time-stamped reporting data for disease outbreaks. 'NobBS' learns the reporting delay distribution and the time evolution of the epidemic curve to produce smoothed nowcasts in both stable and time-varying case reporting settings, as described in McGough et al. (2019) <doi:10.1101/663823>.  
 Depends: R (>= 3.3.0)
+SystemRequirements: JAGS (http://mcmc-jags.sourceforge.net/) for analysis of Bayesian hierarchical models
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
