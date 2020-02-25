@@ -12,13 +12,15 @@
 #' @param max_D Maximum possible delay observed or considered for estimation of the delay distribution (numeric). Default: (length of unique dates in time series)-1 ; or, if a moving window is specified, (size of moving window)-1
 #' @param cutoff_D Consider only delays d<=\code{max_D}? Default: TRUE. If \code{cutoff_D=TRUE}, delays beyond \code{max_D} are ignored. If \code{cutoff_D=FALSE}, \code{max_D} is interpreted as delays>=\code{max_D} but within the moving window given by \code{moving_window}.
 #' @param proportion_reported A decimal greater than 0 and less than or equal to 1 representing the proportion of all cases expected to be reported. Default: 1, e.g. 100 percent of all cases will eventually be reported. For asymptomatic diseases where not all cases will ever be reported, or for outbreaks in which severe under-reporting is expected, change this to less than 1.
+#' @param quiet Suppress all output and progress bars from the JAGS process. Default: TRUE.
 #' @param specs A list with arguments specifying the Bayesian model used: \code{dist} (Default: "Poisson"), \code{beta.priors} (Default: 0.1 for each delay d), \code{nSamp} (Default: 10000), \code{nBurnin} (Default: 1000), \code{nAdapt} (Default: 1000), \code{nChains} (Default: 1), \code{nThin} (Default: 1), \code{alphat.shape.prior} (Default: 0.001), \code{alphat.rate.prior} (Default: 0.001), \code{alpha1.mean.prior} (Default: 0), \code{alpha1.prec.prior} (Default: 0.001), \code{dispersion.prior} (Default: NULL, i.e. no dispersion. Otherwise, enter c(shape,rate) for a Gamma distribution.), \code{conf} (Default: 0.95), \code{param_names} (Default: NULL, i.e. output for all parameters is provided: c("lambda","alpha","beta.logged","tau2.alpha"). See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of these parameters.).
 #' @return The function returns a list with the following elements: \code{estimates}, a 5-column data frame containing estimates for each date in the window of predictions (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{estimates.inflated}, a Tx4 data frame containing estimates inflated by the proportion_reported for each date in the time series (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{nowcast.post.samples}, vector of 10,000 samples from the posterior predictive distribution of the nowcast, and \code{params.post}, a 10,000xN dataframe containing 10,000 posterior samples for the "N" parameters specified in specs[["param_names"]]. See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of parameters.
 #' @examples
 #' # Load the data
 #' data(denguedat)
-#' # Perform stratified 'NobBS' assuming Poisson distribution, vague priors, and default specifications.
-#' nowcast <- NobBS.strat(denguedat, as.Date("1990-04-09"),units="1 week",onset_date="onset_week",
+#' # Perform stratified 'NobBS' assuming Poisson distribution, vague priors, and default
+#' # specifications.
+#' nowcast <- NobBS.strat(denguedat, as.Date("1990-02-05"),units="1 week",onset_date="onset_week",
 #' report_date="report_week",strata="gender")
 #' nowcast$estimates
 #' @export
@@ -246,7 +248,9 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
     model = nowcastmodel,
     variable.names =  if("sum.n"%in%specs$param_names) c(specs$param_names) else c(specs$param_names,"sum.n"),
     n.iter = nIter,
-    thin = nThin)
+    thin = nThin,
+    quiet=quiet,
+    progress.bar=progress.bar)
 
   mymod.mcmc <- as.mcmc(lambda.output)
   mymod.dat <- as.data.frame(as.matrix(mymod.mcmc))

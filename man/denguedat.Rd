@@ -20,8 +20,5 @@ data(denguedat)
 nowcast <- NobBS(denguedat, as.Date("1990-04-09"),units="1 week",onset_date="onset_week",
 report_date="report_week")
 nowcast$estimates
-
-nowcast_strat <- NobBS.strat(denguedat, as.Date("1990-04-09"),units="1 week",onset_date="onset_week",
-report_date="report_week",strata="gender")
 }
 \keyword{dengue}

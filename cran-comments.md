@@ -14,9 +14,12 @@ There were no ERRORs, WARNINGs, or NOTEs when checked on local OX install.
 There were no ERRORs or WARNINGs when checked on win-builder or on most R-hub checkers. There was one NOTE commonly across checks:
 
 -   Possibly mis-spelled words in DESCRIPTION:
--   NobBS (10:164)
+
+-   McGough (10:359)
 -   Nowcasting (2:8)
--   nowcasts (10:275)
+-   al (10:370)
+-   et (10:367)
+-   nowcasts (10:277)
 
 These words are not mis-spelled.
 
