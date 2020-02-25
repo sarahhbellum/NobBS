@@ -2,24 +2,40 @@
 output: github_document
 ---
 
-## Test environments
+# Resubmission
+
+This is a resubmission. In this version I have:
+
+* Written 'NobBS' in single quotes in title and description 
+* Added a reference to the method in authors (year) <doi:...> format
+* Added a copyright holder to the LICENSE file
+* Confirmed that the mentioned email address is not a mailing list, it is a personal email
+* Added a SystemRequirements field in the DESCRIPTION file to describe the JAGS system requirement
+* Added an argument `quiet` to the function to allow suppression of JAGS-related output and progress bars
+* Replaced the `print()` status with `message()`
+* Written TRUE and FALSE in full
+* Replaced the "T" vector name with "Today"
+
+## Test environments (resubmission)
 * local OS X install, R 3.3.2
 * win-builder (devel and release)
 * R-hub (Ubuntu Linux 16.04 LTS, R-release, GCC; Fedora Linux, R-devel, clang, gfortran; Windows Server 2008 R2 SP1, R-devel, 32/64 bit)
 
-## R CMD check results
+## R CMD check results (resubmission)
+
+The resubmission generated substantively the same R CMD check results as in the initial submission and are described here for completeness. 
+
 There were no ERRORs, WARNINGs, or NOTEs when checked on local OX install. 
 
 There were no ERRORs or WARNINGs when checked on win-builder or on most R-hub checkers. There was one NOTE commonly across checks:
 
 * Possibly mis-spelled words in DESCRIPTION:
-
   + McGough (10:359)
   + Nowcasting (2:8)
   + al (10:370)
   + et (10:367)
   + nowcasts (10:277)
-    
+
 These words are not mis-spelled.
 
 There was one ERROR for R-hub checked on Fedora Linux, R-devel, clang, gfortran: 
@@ -28,3 +44,33 @@ There was one ERROR for R-hub checked on Fedora Linux, R-devel, clang, gfortran:
 
 This error is because JAGS is required to be installed on the system before installation of `rjags`.
 This is noted in the README.md and help files. 
+
+
+# Initial submission
+
+## Test environments
+* local OS X install, R 3.3.2
+* win-builder (devel and release)
+* R-hub (Ubuntu Linux 16.04 LTS, R-release, GCC; Fedora Linux, R-devel, clang, gfortran; Windows Server 2008 R2 SP1, R-devel, 32/64 bit)
+
+## R CMD check results
+
+There were no ERRORs, WARNINGs, or NOTEs when checked on local OX install. 
+
+There were no ERRORs or WARNINGs when checked on win-builder or on most R-hub checkers. There was one NOTE commonly across checks:
+
+* Possibly mis-spelled words in DESCRIPTION:
+  + NobBS (10:164)
+  + Nowcasting
+  (2:8)
+  + nowcasts (10:275)
+
+These words are not mis-spelled.
+
+There was one ERROR for R-hub checked on Fedora Linux, R-devel, clang, gfortran: 
+
+* configure: error: "automatic detection of JAGS failed. Please use pkg-config to locate the JAGS library. See the INSTALL file for details."
+
+This error is because JAGS is required to be installed on the system before installation of `rjags`.
+This is noted in the README.md and help files. 
+

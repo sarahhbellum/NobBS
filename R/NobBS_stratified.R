@@ -70,7 +70,7 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
   }
 
   # Print date
-  print(paste("Computing a nowcast for ",now))
+  message(paste("Computing a nowcast for ",now))
   # Define "T", the length of dates between the first date of data and "now", making sure that "T" is unaffected by skipped-over dates in the time series
   # If the moving window is specified, "T" considers only the dates within the moving window; otherwise considers all historical data
   now.T <- ifelse(is.null(moving_window),length(seq(min(data[,onset_date]),as.Date(now),by=units)),
