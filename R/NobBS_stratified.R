@@ -28,7 +28,7 @@
 #' @import rjags
 #' @importFrom dplyr last
 #' @importFrom dplyr select
-#' @importFrom dplyr vars_select
+#' @importFrom tidyselect vars_select
 #' @importFrom dplyr starts_with
 #' @importFrom dplyr group_by
 #' @importFrom dplyr n
