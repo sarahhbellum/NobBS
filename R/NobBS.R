@@ -29,9 +29,9 @@
 #' @import rjags
 #' @importFrom dplyr last
 #' @importFrom dplyr select
-#' @importFrom dplyr select_vars
+#' @importFrom dplyr vars_select
 #' @importFrom dplyr starts_with
-#' @importFrom dplyr group_by_
+#' @importFrom dplyr group_by
 #' @importFrom dplyr n
 #' @importFrom dplyr summarise
 #' @importFrom dplyr left_join
@@ -265,7 +265,7 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   # Combine nowcast estimates with: dates, number of cases reported at each date
   reported <- data.frame(
     realtime.data %>%
-    group_by_(onset_date) %>%
+    group_by(onset_date) %>%
     summarise(n.reported=n())
   )
   names(reported)[1] <- "onset_date"
@@ -282,33 +282,33 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   parameter_extract <- matrix(NA, nrow=10000)
 
   if("lambda"%in%specs$param_names){
-    parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("lambda[",t,",",sep="")))))
+    parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with(paste("lambda[",t,",",sep="")))))
   }
   if("beta.logged"%in%specs$param_names){
     betas.logged<- matrix(NA,nrow=10000,ncol=(max_D+1))
     dimnames(betas.logged) = list(NULL,c(paste("Beta",c(0:max_D))))
     for(d in 0:max_D){
-      betas.logged[,(d+1)] <- (mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("beta.logged[",(d+1),"]",sep="")))))[,1]
+      betas.logged[,(d+1)] <- (mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with(paste("beta.logged[",(d+1),"]",sep="")))))[,1]
     }
     parameter_extract <- cbind(parameter_extract,betas.logged)
   }
   if("alpha"%in%specs$param_names){
-    parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("alpha[",t,sep="")))))
+    parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with(paste("alpha[",t,sep="")))))
   }
   if("tau2.alpha"%in%specs$param_names){
-    parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with("tau2.alpha"))))
+    parameter_extract <- cbind(parameter_extract,mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with("tau2.alpha"))))
   }
 
-  #log.beta.td1 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("beta.logged[1]",sep=""))))
-  #log.beta.td2 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("beta.logged[2]",sep=""))))
-  #log.beta.td3 <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("beta.logged[3]",sep=""))))
-  #alpha.last <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("alpha[",t,sep=""))))
-  #tau2.alpha <- mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with("tau2.alpha")))
+  #log.beta.td1 <- mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with(paste("beta.logged[1]",sep=""))))
+  #log.beta.td2 <- mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with(paste("beta.logged[2]",sep=""))))
+  #log.beta.td3 <- mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with(paste("beta.logged[3]",sep=""))))
+  #alpha.last <- mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with(paste("alpha[",t,sep=""))))
+  #tau2.alpha <- mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with("tau2.alpha")))
 
   #parameter_extract <- cbind(pi.logged.td1,pi.logged.td2,pi.logged.td3,
    #                          alpha.last,tau2.alpha)
 
-  nowcast.post.samps <- (mymod.dat %>% dplyr::select(select_vars(names(mymod.dat),starts_with(paste("sum.n[",t,sep="")))))[,1]
+  nowcast.post.samps <- (mymod.dat %>% dplyr::select(vars_select(names(mymod.dat),starts_with(paste("sum.n[",t,sep="")))))[,1]
 
   # nowcast_results <<- UPDATE: do not save to global environment; user will have to do this
   list(estimates=estimates,estimates.inflated=estimates.inflated, nowcast.post.samps=nowcast.post.samps,params.post=parameter_extract[,2:ncol(parameter_extract)])
