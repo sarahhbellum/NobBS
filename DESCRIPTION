@@ -17,5 +17,6 @@ Imports:
 	dplyr,
 	rjags,
 	coda,
-	magrittr
+	magrittr,
+	tidyselect
 RoxygenNote: 6.1.1
