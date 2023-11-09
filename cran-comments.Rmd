@@ -2,6 +2,20 @@
 output: github_document
 ---
 
+# Resubmission 11-08-2023
+This is a resubmission of the archived package NobBS. In this version I have:
+
+* Updated deprecated `tidyverse` functions such as `group_by_` and `vars_select`
+* Updated documentation of all affected functions, DESCRIPTION, and NAMESPACE
+
+## Test environments (Resubmission 11-08-2023)
+* local OS X install, R 4.3.2
+* win-builder (devel and release)
+* R-hub (Ubuntu Linux 16.04 LTS, R-release, GCC; Fedora Linux, R-devel, clang, gfortran; Windows Server 2008 R2 SP1, R-devel, 32/64 bit)
+
+## R CMD check results (Resubmission 11-08-2023)
+
+
 # Resubmission
 
 This is a resubmission. In this version I have:
