@@ -4,13 +4,22 @@
 \alias{NobBS}
 \title{Produce smooth Bayesian nowcasts of incomplete, time-stamped reporting data.}
 \usage{
-NobBS(data, now, units, onset_date, report_date, moving_window = NULL,
-  max_D = NULL, cutoff_D = NULL, proportion_reported = 1,
-  quiet = TRUE, specs = list(dist = c("Poisson", "NB"),
-  alpha1.mean.prior = 0, alpha1.prec.prior = 0.001, alphat.shape.prior =
-  0.001, alphat.rate.prior = 0.001, beta.priors = NULL, param_names = NULL,
-  conf = 0.95, dispersion.prior = NULL, nAdapt = 1000, nChains = 1, nBurnin
-  = 1000, nThin = 1, nSamp = 10000))
+NobBS(
+  data,
+  now,
+  units,
+  onset_date,
+  report_date,
+  moving_window = NULL,
+  max_D = NULL,
+  cutoff_D = NULL,
+  proportion_reported = 1,
+  quiet = TRUE,
+  specs = list(dist = c("Poisson", "NB"), alpha1.mean.prior = 0, alpha1.prec.prior =
+    0.001, alphat.shape.prior = 0.001, alphat.rate.prior = 0.001, beta.priors = NULL,
+    param_names = NULL, conf = 0.95, dispersion.prior = NULL, nAdapt = 1000, nChains = 1,
+    nBurnin = 1000, nThin = 1, nSamp = 10000)
+)
 }
 \arguments{
 \item{data}{A time series of reporting data in line list format (one row per case), with a column \code{onset_date} indicating date of case onset, and a column \code{report_date} indicating date of case report.}

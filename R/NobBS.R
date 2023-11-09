@@ -27,6 +27,7 @@
 #' @export
 #' @import coda
 #' @import rjags
+#' @importFrom rlang sym
 #' @importFrom dplyr last
 #' @importFrom dplyr select
 #' @importFrom dplyr starts_with

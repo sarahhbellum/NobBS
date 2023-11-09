@@ -4,7 +4,9 @@
 \name{denguedat}
 \alias{denguedat}
 \title{denguedat: Dengue fever reporting data from Puerto Rico}
-\format{A data frame.}
+\format{
+A data frame.
+}
 \usage{
 data(denguedat)
 }
