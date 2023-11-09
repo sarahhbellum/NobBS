@@ -3,7 +3,7 @@ output: github_document
 ---
 
 # Resubmission 11-08-2023
-This is a resubmission of the archived package NobBS. In this version I have:
+This is a resubmission of the archived package NobBS. In this version I have corrected the major issues which are now fixed:
 
 * Updated deprecated `tidyverse` functions such as `group_by_` and `vars_select`
 * Updated documentation of all affected functions, DESCRIPTION, and NAMESPACE
@@ -14,6 +14,16 @@ This is a resubmission of the archived package NobBS. In this version I have:
 * R-hub (Ubuntu Linux 16.04 LTS, R-release, GCC; Fedora Linux, R-devel, clang, gfortran; Windows Server 2008 R2 SP1, R-devel, 32/64 bit)
 
 ## R CMD check results (Resubmission 11-08-2023)
+There were no ERRORs, WARNINGs, or NOTEs when checked on local OS X install. 
+
+There were no ERRORs or WARNINGs when checked on win-builder or on most R-hub checkers. There was one NOTE that indicated misspelled words, which are not misspelled (see previous CRAN comments).
+
+For some R-hub checkers, the following ERROR was received:
+
+* Error: .onLoad failed in loadNamespace() for 'rjags', details: call: fun(libname, pkgname). error: Failed to locate any version of JAGS version 4
+
+This error is because JAGS is required to be installed on the system before installation of `rjags`.
+This is noted in the README.md and help files. 
 
 
 # Resubmission
