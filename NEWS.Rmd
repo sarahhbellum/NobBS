@@ -1,7 +1,8 @@
 ---
 output: github_document
 ---
-
+# NobBS v. 1.0.0
+Updates to v. 0.1.0 (Initial Release) are major fixes to remove deprecated `tidyverse` functions, replacing `group_by_` with `group_by(!!sym())` and `vars_select` with standard `select`.
 
 # NobBS v. 0.1.0 (Initial Release)
 See `README.md` for a full tutorial on using the NobBS package.

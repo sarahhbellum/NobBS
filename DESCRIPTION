@@ -1,6 +1,6 @@
 Package: NobBS
 Title: Nowcasting by Bayesian Smoothing
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: c(
     person("Sarah", "McGough", email = "sfm341@mail.harvard.edu", role = c("aut", "cre")),
     person("Nicolas", "Menzies", email = "nmenzies@hsph.harvard.edu", role = "aut"),
