@@ -5,7 +5,7 @@ NobBS: Nowcasting by Bayesian Smoothing
 
 <!-- badges: start -->
 <!-- badges: end -->
-NobBS is Bayesian approach to estimate the number of occurred-but-not-yet-reported cases from incomplete, time-stamped reporting data for disease outbreaks. NobBS learns the reporting delay distribution and the time evolution of the epidemic curve to produce smoothed nowcasts in both stable and time-varying case reporting settings. For details, see the pre-print by [McGough et al. 2019](https://www.biorxiv.org/content/10.1101/663823v1.full).
+NobBS is Bayesian approach to estimate the number of occurred-but-not-yet-reported cases from incomplete, time-stamped reporting data for disease outbreaks. NobBS learns the reporting delay distribution and the time evolution of the epidemic curve to produce smoothed nowcasts in both stable and time-varying case reporting settings. For details, see the publication by [McGough et al. 2020](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007735).
 
 Installation
 ------------
@@ -64,9 +64,9 @@ The user may optionally specify arguments such as:
 
 ### Bayesian parameters
 
-The user may specify whether underlying cases occur as part of a Poisson or a Negative Binomial process (Default: Poisson), and may specify the priors on the log-linear model as described in [McGough et al. 2019](https://www.biorxiv.org/content/10.1101/663823v1.full), where default values are set to be weakly informative. In addition, arguments governing the JAGS model MCMC sampling may be specified: number of chains (`nChains`, default=1), number of samples (`nSamp`, default=10,000), number of iterations discarded as burn-in (`nBurnin`, default=1000), number of thinned iterations (`nThin`, default=1), and adaptation period (`nAdapt`, default=1000). The percentile of the prediction interval may be specified with `conf` (default = 0.95 for a 95% prediction interval).
+The user may specify whether underlying cases occur as part of a Poisson or a Negative Binomial process (Default: Poisson), and may specify the priors on the log-linear model as described in [McGough et al. 2020](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007735), where default values are set to be weakly informative. In addition, arguments governing the JAGS model MCMC sampling may be specified: number of chains (`nChains`, default=1), number of samples (`nSamp`, default=10,000), number of iterations discarded as burn-in (`nBurnin`, default=1000), number of thinned iterations (`nThin`, default=1), and adaptation period (`nAdapt`, default=1000). The percentile of the prediction interval may be specified with `conf` (default = 0.95 for a 95% prediction interval).
 
-For recommendations on priors and moving windows, see the *Materials and Methods* sub-section in [McGough et al. 2019](https://www.biorxiv.org/content/10.1101/663823v1.full) entitled "NobBS R package implementation and recommendations."
+For recommendations on priors and moving windows, see the *Materials and Methods* sub-section in [McGough et al. 2020](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007735) entitled "NobBS R package implementation and recommendations."
 
 Model output
 ------------
