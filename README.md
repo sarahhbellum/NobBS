@@ -23,7 +23,7 @@ library(devtools)
 install_github("sarahhbellum/NobBS") 
 ```
 
-NobBS **requires** that [JAGS](http://mcmc-jags.sourceforge.net/) (Just Another Gibbs Sampler) is downloaded to the system or computer on which NobBS will run. Download JAGS here: <http://mcmc-jags.sourceforge.net/>.
+NobBS **requires** that [JAGS](https://mcmc-jags.sourceforge.io/) (Just Another Gibbs Sampler) is downloaded to the system or computer on which NobBS will run. Download JAGS here: <https://mcmc-jags.sourceforge.io/>.
 
 Usage
 -----
