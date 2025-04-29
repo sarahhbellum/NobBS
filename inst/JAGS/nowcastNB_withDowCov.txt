@@ -5,7 +5,7 @@ model
   for( t in 1:Today ){
     for(d in 0:D){
       n[t,(d+1)] ~ dnegbin(p[t,(d+1)],r)
-      log(lambda[t,(d+1)]) <- alpha[t] + beta.logged[(d+1)]
+      log(lambda[t,(d+1)]) <- alpha[t] + beta.logged[(d+1)] + inprod(X[t,1:6], gamma)
       # Conversions
       p[t,(d+1)] <- r/(r+lambda[t,(d+1)])
     }
@@ -21,6 +21,12 @@ model
   ## Prior for beta
   beta.logged <- log(beta)
   beta ~ ddirch(beta.priors)
+
+  # Priors for gamma (day-of-week covariate effects)
+  # Estimate only 6 coefficients, excluding the last (Sunday) which is fixed as 0 for reference
+  for(j in 1:6) {
+    gamma[j] ~ dnorm(gamma.mean.prior[j], gamma.prec.prior[j])
+  }
   
   # Prior for variance
   tau2.alpha ~ dgamma(alphat.shape.prior,alphat.rate.prior)

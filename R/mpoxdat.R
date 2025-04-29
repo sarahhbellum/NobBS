@@ -1,0 +1,26 @@
+#' mpoxdat: Mpox reporting data from the 2022 New York City Outbreak
+#'
+#' Surveillance line list data provided by the New York City (NYC) Health Department
+#' at https://github.com/nychealth/mpox_nowcast_eval, to accompany a nowcasting performance evaluation (doi: 10.2196/56495).
+#' Patients with a confirmed or probable mpox diagnosis or illness onset from July 8 through September 30, 2022 were included.
+#' The dataset contains 3323 rows and 4 columns.
+#' The first column, \code{dx_date}, is the specimen collection date of the first positive mpox laboratory result.
+#' The second column, \code{dx_report_date}, is the date the report of first positive mpox laboratory result was received by the NYC Health Department.
+#' The third column, \code{onset_date}, is the mpox symptom onset date.
+#' The fourth column, \code{onset_report_date}, is the date symptom onset date was received by the NYC Health Department.
+#'
+#' @docType data
+#'
+#' @usage data(mpoxdat)
+#'
+#' @format A data frame.
+#'
+#' @keywords mpox
+#'
+#' @examples
+#' data(mpoxdat)
+#' nowcast <- NobBS(mpoxdat, as.Date("2022-08-31"),units="1 day",onset_date="dx_date",
+#' report_date="dx_report_date",moving_window=14)
+#' nowcast$estimates
+
+"mpoxdat"

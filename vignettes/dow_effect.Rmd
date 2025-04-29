@@ -1,0 +1,397 @@
+---
+title: "Accounting for Day-of-the-Week Effect in Nowcast Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Accounting for Day-of-the-Week Effect in Nowcast Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+if (utils::packageVersion("scoringutils") < "2.0.0") {
+    stop("The 'scoringutils' package version 2.0.0 or higher is required. Please update it.")
+}
+if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("The vignette requires the 'ggplot2' package. Please install it to build the vignette.")
+}
+```
+
+## Introduction
+The day-of-the-week (DoW) effect in disease incidence case reporting arises from variations in diagnostic and reporting practices across different days of the week. For example, on weekends, there may be fewer diagnoses because more health care provider offices are closed, and also fewer reports received because of reduced laboratory staffing. If not properly accounted for, this effect can distort epidemic analyses of daily incidence data. This vignette demonstrates how version 1.1.0 of the NobBS package addresses this issue by incorporating the DoW effect into nowcasting models.
+
+To address DoW effect, the `NobBS` package now introduces a new boolean parameter, `add_dow_effect`, applicable to both the `NobBS` and `NobBS.strat` functions. When this parameter is set to TRUE, and assuming the given data are at daily resolution (as otherwise the DoW effect is irrelevant), the statistical model for expected case counts is enhanced to include this effect as follows:
+
+$$
+\log(\lambda_{t,d}) = \alpha_t + \beta_d + \gamma X_t
+$$
+
+- $\lambda_{t,d}$: The expected number of cases reported at time $t$ with a delay of $d$.
+
+- $\alpha_t$: The baseline log incidence at time $t$.
+
+- $\beta_d$: The effect of the delay $d$.
+
+- $\gamma$: A vector of coefficients associated with the DoW covariates.
+
+- $X_{t}$: A matrix of covariates for the DoW where each row corresponds to onset date $t$ and contains '1' in the column representing the DoW for that date and '0' otherwise. 
+ 
+Our model incorporates the DoW effect by introducing DoW coefficients ($\gamma$), which adjust the baseline log incidence ($\alpha_t$) to account for systematic DoW variations in reported cases. Typically, diagnosis dates are used because of missingness in illness onset dates. When using diagnosis dates, the addition of $\gamma X_{t}$ captures differences in diagnostic availability across the week - such as fewer tests  conducted over weekends. However, if DoW effects also exist in reporting delays (e.g., fewer reports being processed on weekends, leading to backlogs on Mondays), our model accounts for those as well.
+
+The DoW coefficients consist of seven values, each representing the effect of a specific DoW, from Monday to Sunday. The  coefficient for Sunday ($\gamma[7]$) is fixed to zero as the reference day, which means that the values of the rest of the DoW coefficients represent the log-expected number of cases compared with the reference day. In other words, the value of $\exp(\gamma)$ for each day from Monday to Saturday is the multiplicative effect for the expected number of cases in this day compared with Sunday. So, for example, if $\exp(\gamma)$ for Monday is 1.2, it means we expect 20% more cases on a Monday compared with a Sunday, all other things being equal. 
+
+The priors for the DoW coefficients are modeled as a normal distribution with a default mean of 0 (assuming no systemic DoW effect) and a precision of 0.25 (corresponding to a standard deviation of $\sqrt{(1/0.25}=2$). Users can modify these priors using the `gamma.mean.prior` and `gamma.prec.prior` parameters inside the specs list, which is provided to the `NobBS` and `NobBS.strat` functions. `gamma.mean.prior` allows users to specify six values, setting the mean priors for Monday through Saturday (Sunday is the reference day). Similarly, `gamma.prec.prior` defines six precision values for Monday through Saturday, providing flexibility to control the level of regularization or expected variability in the DoW effects.
+
+The following code demonstrates this feature using daily mpox data from the 2022 NYC outbreak, which is now included in the `NobBS` package. 
+
+## Comparing the Performance with and without DoW Effect
+
+First, we run the nowcasting model for a given date (August 15, 2022), both with and without the DoW effect, and store the results for comparison. We use a 28-day window, allowing the estimation of the DoW effect to be based on four weeks of data. We apply the default priors for the mean DoW effect, meaning we assume no prior effect before incorporating the data.
+
+```{r setup, warning=FALSE, message=FALSE}
+library(NobBS)
+library(dplyr)
+library(ggplot2)
+library(scoringutils)
+data(mpoxdat)
+
+win_size <- 28
+now <- as.Date("2022-08-15")
+test_dates <- seq(now, now, by = 1)
+
+# Filter data for current "now" date
+current_data <- mpoxdat[mpoxdat$dx_date <= now, ]
+
+# Run nowcasts and store results
+nowcast_without_dow <- NobBS(
+  current_data, now, units = "1 day",
+  onset_date = "dx_date", report_date = "dx_report_date",
+  moving_window = win_size,
+  specs=list(nAdapt=2000))
+
+nowcast_with_dow <- NobBS(
+  current_data, now, units = "1 day",
+  onset_date = "dx_date", report_date = "dx_report_date",
+  moving_window = win_size, 
+  specs=list(nAdapt=2000),
+  add_dow_cov = TRUE,
+  )
+
+nowcasts_without_dow <- list()
+nowcasts_with_dow <- list()
+nowcasts_without_dow[[1]] <- nowcast_without_dow
+nowcasts_with_dow[[1]] <- nowcast_with_dow
+
+```
+
+
+Now let us plot and compare the estimates obtained from these nowcasts:
+
+```{r plot_estimates, fig.width=8, fig.height=4}
+
+plot_estimates <- function(nowcast1, nowcast2, cases_per_date, now) {
+  # Ensure input data is valid
+  if (is.null(nowcast1$estimates) || is.null(nowcast2$estimates)) {
+    stop("Nowcast estimates are missing.")
+  }
+  
+  # Extract estimates and credible intervals for nowcast without DoW effect
+  onset_dates1 <- nowcast1$estimates$onset_date
+  estimates1 <- nowcast1$estimates$estimate
+  lower1 <- nowcast1$estimates$q_0.025  # 2.5% quantile (lower bound of 95% PI)
+  upper1 <- nowcast1$estimates$q_0.975  # 97.5% quantile (upper bound of 95% PI)
+  
+  # Extract estimates and prediction intervals for nowcast with DoW effect
+  onset_dates2 <- nowcast2$estimates$onset_date
+  estimates2 <- nowcast2$estimates$estimate
+  lower2 <- nowcast2$estimates$q_0.025
+  upper2 <- nowcast2$estimates$q_0.975
+
+  # Extract eventual case counts
+  case_dates <- cases_per_date$dx_date
+  case_counts <- cases_per_date$count
+  
+  # Calculate plot range
+  min_val <- min(c(lower1, lower2, case_counts), na.rm = TRUE)
+  max_val <- max(c(upper1, upper2, case_counts), na.rm = TRUE)
+
+  # Create the plot
+  plot(
+    onset_dates1, estimates1, col = 'blue', type = 'l',
+    xlab = 'Onset Date', ylab = 'Cases',
+    ylim = c(min_val, max_val), lwd = 2,
+    main = paste0('Incidence Estimates for ', weekdays(now), ' ', now)
+  )
+  lines(onset_dates2, estimates2, col = 'red', lwd = 2)
+
+  # Add 95% PI shaded regions for both nowcasts
+  polygon(c(onset_dates1, rev(onset_dates1)), c(lower1, rev(upper1)), 
+          col = rgb(0, 0, 1, 0.2), border = NA) 
+  polygon(c(onset_dates2, rev(onset_dates2)), c(lower2, rev(upper2)), 
+          col = rgb(1, 0, 0, 0.2), border = NA) 
+
+  # Add true case counts as points
+  points(case_dates, case_counts, col = 'black', pch = 20)
+  
+  # Add a legend
+  legend(
+    'topleft',
+    legend = c('Estimates without DoW effect', 
+               'Estimates with DoW effect', 
+               '95% PI (No DoW Effect)', 
+               '95% PI (With DoW Effect)',
+               'Eventual cases'),
+    col = c('blue', 'red', rgb(0, 0, 1, 0.2), rgb(1, 0, 0, 0.2), 'black'),
+    lty = c(1, 1, NA, NA, NA), lwd = c(2, 2, NA, NA, NA), 
+    pch = c(NA, NA, 15, 15, 20),
+    pt.cex = c(NA, NA, 1.5, 1.5, 1), 
+    cex = 0.9
+  )
+}
+
+# Calculate true case counts
+current_data <- mpoxdat[mpoxdat$dx_date <= now, ]
+cases_per_date <- current_data %>%
+  group_by(dx_date) %>%
+  summarize(count = n())
+
+# plot a comparison of the nowcast estimates
+plot_estimates(nowcast_without_dow, nowcast_with_dow, cases_per_date, now)
+
+```
+
+As can be seen in the plot, the estimates that incorporate the DoW effect demonstrate greater accuracy. Specifically, the model incorporating the DoW effect correctly estimates the down trend during the weekend prior to the nowcasting date (a Monday), whereas the model without the DoW effect does not catch this trend. Additionally, the 95% prediction intervals (PIs) for the nowcast incorporating the DoW effect are narrower compared to those without the DoW effect, suggesting reduced uncertainty in predictions.
+
+## DoW Coefficients Estimates
+
+Next, we plot the mean estimates of the multiplicative effect for each DoW relative to Sunday, as discussed earlier. We visualize the estimates together with error bars representing their 95% credible intervals:
+
+```{r gammas_analysis, fig.width=8, fig.height=4}
+
+# Specify correct ordering for days of the week
+weekdays_order <- c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+# Function to extract DoW effect for a given nowcast (mean + 95% CI from posterior samples)
+extract_dow_effect <- function(nowcast) {
+  gammas <- numeric(6)  # Only 6 because Sunday is ref
+  gamma_lower <- numeric(6)
+  gamma_upper <- numeric(6)
+  
+  for (i in 1:6) {
+    param_name <- paste0("gamma[", i, "]")
+    
+    # Extract posterior samples
+    posterior_samples <- exp(nowcast$params.post[[param_name]])
+    
+    # Compute mean and credible intervals
+    gammas[i] <- mean(posterior_samples)  # Mean estimate
+    gamma_lower[i] <- quantile(posterior_samples, 0.025)  # Lower 95% CI
+    gamma_upper[i] <- quantile(posterior_samples, 0.975)  # Upper 95% CI
+  }
+  
+  return(list(means = gammas, lower = gamma_lower, upper = gamma_upper))
+}
+
+dow_effects <- extract_dow_effect(nowcast_with_dow)
+  
+dow_df <- data.frame(
+    Day = factor(weekdays_order, levels = weekdays_order), 
+    Mean = dow_effects$means,
+    Lower = dow_effects$lower,
+    Upper = dow_effects$upper
+)
+  
+plot_title <- paste("Estimates of DoW effect for nowcast performed on ",now)
+  
+p <- ggplot(dow_df, aes(x = Day, y = Mean)) +
+  geom_point(size = 3, color = "blue") +
+  geom_errorbar(aes(ymin = Lower, ymax = Upper), width = 0.2, color = "black") +
+  labs(title = plot_title, y = "DoW Effect on Expected Cases\n(Compared to Sunday)\n", x = "") +
+  theme_minimal()
+
+print(dow_df)
+print(p)
+```
+
+The mean estimates of the DoW multiplicative effect for weekdays range from 2.4 (Monday) to 1.8 (Friday). The lower bound of the 95% credible interval for weekdays is well above 1, indicating a statistically significant difference from Sunday. In contrast, the mean estimated effect for Saturday is 1.1 and does not appear significantly different from Sunday, as its credible interval includes 1.
+
+## Employing DoW Estimates as Priors for Future Nowcasts
+
+Now, assume we want to perform nowcasts for the period following August 15, 2022, while incorporating our previously estimated DoW effect from that date as priors. We can set the log of the estimated multiplicative effect as the prior mean parameters (`gamma.mean.prior`) and derive the prior precision parameters (`gamma.prec.prior`) from the estimated 95% credible intervals. 
+
+Below, we demonstrate this approach by performing nowcasts for the four days following August 15, 2022, once again comparing the results of a model that incorporates the DoW effect with one that does not. Here, we use a  shorter, two-week window for the nowcasts, ensuring they are based on recent data, while leveraging our prior DoW effect estimates for added stability.
+
+```{r employing_priors, warning=FALSE, message=FALSE, fig.width=8, fig.height=4}
+
+prior_mean <- log(dow_effects$means)
+prior_sd <- (dow_effects$upper-dow_effects$lower)/(2*1.96) 
+prior_prec <- 1/(prior_sd^2)
+
+test_dates <- seq(as.Date("2022-08-16"), as.Date("2022-08-19"), by = 1)
+win_size <- 14
+
+# Initialize lists to store nowcasts
+nowcasts_without_dow <- list() # Nowcasts without DoW effect
+nowcasts_with_dow <- list()    # Nowcasts with DoW effect
+
+# Loop through each "now" date and run nowcasting
+for (t in seq_along(test_dates)) {
+  now <- test_dates[t]
+  
+  # Filter data for current "now" date
+  current_data <- mpoxdat[mpoxdat$dx_date <= now, ]
+  
+  # Run nowcasts and store results
+  nowcasts_without_dow[[t]] <- NobBS(
+    current_data, now, units = "1 day",
+    onset_date = "dx_date", report_date = "dx_report_date",
+    moving_window = win_size,
+  )
+  
+  nowcasts_with_dow[[t]] <- NobBS(
+    current_data, now, units = "1 day",
+    onset_date = "dx_date", report_date = "dx_report_date",
+    moving_window = win_size, 
+    specs=list(gamma.mean.prior=prior_mean,gamma.prec.prior=prior_prec),
+    add_dow_cov = TRUE
+  )
+}
+
+# Loop through each "now" date and plot a comparison of the nowcast estimates
+# with and without the DoW effect
+for (t in seq_along(test_dates)) {
+  now <- test_dates[t]
+  nowcast1 <- nowcasts_without_dow[[t]]
+  nowcast2 <- nowcasts_with_dow[[t]]
+  
+  # Calculate true case counts
+  current_data <- mpoxdat[mpoxdat$dx_date <= now, ]
+  cases_per_date <- current_data %>%
+    group_by(dx_date) %>%
+    summarize(count = n())
+
+  plot_estimates(nowcast1, nowcast2, cases_per_date, now)
+}
+```
+
+To evaluate the results of these nowcasts we calculate and plot the Weighted Interval Score (WIS) for the two models (see "Calculating Weighted Interval Score for Nowcast Models" vignette for more details about WIS calculation with `NobBS` package version 1.1.0):
+
+
+```{r wis_calculation, warning=FALSE, message=FALSE, fig.width=8, fig.height=4}
+
+quantiles <- c(0.025,0.25,0.5,0.75,0.975)
+q_len <- length(quantiles)
+q_cols <- paste0('q_',quantiles)
+
+data <- data.frame(onset_week=as.Date(character()),
+                   now=as.Date(character()),
+                   horizon=numeric(),
+                   quantile_level=numeric(),
+                   predicted=numeric(),
+                   observed=numeric(),
+                   model=character())
+
+cases_per_date <- mpoxdat %>%
+    group_by(dx_date) %>%
+    summarize(count = n())
+
+horizons <- c(-5,-4,-3,-2,-1,0)
+
+for (t in seq_along(test_dates)) {
+  now <- test_dates[t]
+  nowcast1 <- nowcasts_without_dow[[t]]
+  nowcast2 <- nowcasts_with_dow[[t]]
+  for(h in horizons) {
+    date <- now + h
+    true_value <- cases_per_date[cases_per_date$dx_date==date,]$count
+    q_est1 <- unname(unlist(nowcast1$estimates[nowcast1$estimates$onset_date==date,q_cols]))
+    q_est2 <- unname(unlist(nowcast2$estimates[nowcast2$estimates$onset_date==date,q_cols]))
+    data_est <- data.frame(onset_week=rep(date,q_len*2),
+                           now=rep(now,q_len*2),
+                           horizon=rep(h,q_len*2),
+                           quantile_level=rep(quantiles,2),
+                           predicted=c(q_est1,q_est2),
+                           observed=rep(true_value,q_len*2),
+                           model=c(rep('Without DoW',q_len),rep('With DoW',q_len)))
+    data <- rbind(data,data_est)
+  }
+}
+
+nowcasts <- data %>%
+          scoringutils::as_forecast_quantile()
+scores <- scoringutils::score(nowcasts, 
+             get_metrics(nowcasts,select=c("wis","overprediction","underprediction","dispersion")))
+
+scores_per_model <- scores %>%
+          summarise_scores(by = c("model"))
+
+print(scores_per_model)
+plot_wis(scores_per_model) + 
+  ggtitle('WIS with and without DoW')
+```
+
+As seen from these results, the model incorporating the DoW effect has better (smaller) dispersion and better coverage (smaller penalty for overdispersion - both models overestimate the actual cases in these nowcasts), and as a result, its WIS score is better.
+
+We can plot our prior and posterior estimates for the DoW effect for each of the nowcasting days
+
+
+```{r dow_estimates2, warning=FALSE, message=FALSE, fig.width=8, fig.height=4}
+
+# Extract DoW effects for each nowcast
+for (t in seq_along(test_dates)) {
+  now <- test_dates[t]
+  
+  # Retrieve nowcast with DoW effect
+  nowcast_with_dow2 <- nowcasts_with_dow[[t]]
+  
+  # Extract estimates
+  dow_effects2 <- extract_dow_effect(nowcast_with_dow2)
+  
+  dow_df2 <- data.frame(
+    Day = factor(weekdays_order, levels = weekdays_order), 
+    Mean = dow_effects2$means,
+    Lower = dow_effects2$lower,
+    Upper = dow_effects2$upper
+  )
+
+  # Add a Type column to distinguish priors and posteriors
+  dow_df$Type <- "Prior"
+  dow_df2$Type <- "Posterior"
+
+  # Combine the two datasets
+  combined_dow_df <- rbind(dow_df, dow_df2)
+  # Ensure the Type column is a factor with the desired order
+  combined_dow_df$Type <- factor(combined_dow_df$Type, levels = c("Prior", "Posterior"))
+
+  plot_title <- paste("Estimates of DoW effect for nowcast performed on", weekdays(now), now)
+  
+  # Plot with dodged positioning for side-by-side visualization
+  p <- ggplot(combined_dow_df, aes(x = Day, y = Mean, color = Type, group = Type)) +
+    geom_point(position = position_dodge(width = 0.4), size = 3) +
+    geom_errorbar(aes(ymin = Lower, ymax = Upper), width = 0.2, position = position_dodge(width = 0.4)) +
+    labs(title = plot_title, y = "DoW Effect on Expected Cases\n(Compared to Sunday)\n", x = "") +
+    ylim(0.5, 4) +
+    theme_minimal() +
+    scale_color_manual(values = c("Prior" = "blue", "Posterior" = "red")) +
+    theme(legend.position = "top")  
+
+  print(p)
+}
+```
+
+As seen in these plots, the posterior estimates for the DoW effect have shifted slightly but remain largely consistent with expectations, indicating that the data has refined, rather than drastically contradicted, our priors. This outcome is expected given that the time period used for these later nowcasts overlaps or is close to the period from which the prior estimates were derived. However, as we conduct nowcasts further into the future, changes in laboratory practices or reporting patterns between weekdays and weekends could lead to a more pronounced shift in the DoW effect estimates. If such changes occur, it may be necessary to reevaluate the priors used in the model to ensure they remain appropriate.
+
+## Conclusion
+
+This vignette demonstrates that accounting for the DoW effect is an important enhancement when using daily incidence data in nowcasting models. The `NobBS` package version 1.1.0 supports this feature, improving model accuracy by capturing systematic DoW variations in case diagnosis or reporting patterns.
+
+However, certain limitations should be considered when applying this approach:
+
+* Sparse input data can reduce the reliability of estimated DoW effects, particularly when individual days have very few reported cases.
+
+* Holidays and irregular reporting days can disrupt the typical DoW pattern, leading to misleading estimates if not explicitly accounted for (currently not supported by the package). Users should exercise caution when applying DoW adjustments in periods with irregular reporting.
+
+To mitigate these challenges, one approach is to pre-estimate the DoW effect during a period with stable reporting and sufficient data, then use these estimates as priors when nowcasting during a more problematic period (e.g., one affected by sparse data or holidays). Additionally, users can increase the precision parameter (`gamma.prec.prior`) to very high values, effectively treating the pre-estimated priors as nearly fixed parameters. 

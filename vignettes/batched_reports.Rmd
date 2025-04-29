@@ -1,0 +1,161 @@
+---
+title: "Handling Batched Reporting in Nowcast Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Handling Batched Reporting in Nowcast Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+Batch reporting is a common phenomenon in disease incidence reporting. For example, a laboratory may typically report positive test results to the health department within 24 hours. However, if a technical issue delays file transmission, the lab may later back-report a large volume of results spanning multiple diagnosis dates on a single day. If not properly handled, batch reporting can distort epidemic analyses, as these cases provide valuable information about the epidemic trend but do not accurately reflect the natural delay distribution.
+
+This vignette demonstrates how version 1.1.0 of the `NobBS` package can address this challenge by distinguishing batched reports from regular reports when nowcasting. The `NobBS` package now allows the inclusion of a boolean column, `batched`, in the line list data. Cases marked as TRUE in this column will inform the epidemic trend using their onset date but will be excluded from the delay distribution estimation.
+
+The following code demonstrates this feature using the dengue data included in the `NobBS` package. We will perform nowcasting under three scenarios:
+
+1. Using the original data,
+2. Using the data after artificially introducing delayed batch reports, without indicating the delays to the NobBS function, and
+3. Using the altered data but correctly indicating the delayed reporting using the batched column
+
+## Data Preparation
+
+```{r setup, warning=FALSE, message=FALSE}
+library(NobBS)
+library(dplyr)
+
+data(denguedat)
+
+# Define the current date and window size for nowcasting
+now <- as.Date("1994-09-26")
+win_size <- 8
+
+# Original data for nowcasting
+denguedat1 <- denguedat %>% filter(onset_week <= now)
+
+# Altered data: Move some report dates forward without indicating batch reporting
+denguedat2 <- denguedat1 %>%
+  mutate(report_week = if_else(onset_week == as.Date("1994-08-29") &
+                               report_week == as.Date("1994-09-05"),
+                               as.Date("1994-09-26"), report_week))
+
+# Altered data with batch reporting indicated
+denguedat3 <- denguedat2 %>%
+  mutate(batched = denguedat1$onset_week == "1994-08-29" & denguedat1$report_week == "1994-09-05")
+```
+
+## Nowcasting Scenarios
+
+We perform nowcasting for each dataset to demonstrate the effect of batch reporting:
+
+```{r nowcasting, warning=FALSE, message=FALSE}
+# Helper function to run nowcasting
+run_nowcast <- function(data, now, win_size) {
+  NobBS(data, now, units = "1 week", onset_date = "onset_week", 
+        report_date = "report_week", moving_window = win_size)
+}
+
+# Run nowcasts for all scenarios
+nowcast1 <- run_nowcast(denguedat1, now, win_size)
+nowcast2 <- run_nowcast(denguedat2, now, win_size)
+nowcast3 <- run_nowcast(denguedat3, now, win_size)
+```
+
+## Delay Distribution Estimates
+
+Now let's examine the estimated reporting delay distribution obtained from the three nowcasts:
+
+```{r, fig.width=7, fig.height=4}
+# Function to extract the probability distribution of the reporting delay (betas) from nowcast results
+extract_reporting_delay_distribution <- function(nowcast, win_size) {
+  sapply(0:(win_size - 1), function(i) {
+    mean(exp(nowcast$params.post[[paste0("Beta ", i)]]))
+  })
+}
+
+# Extract probability distribution of the reporting delay for each scenario
+betas1 <- extract_reporting_delay_distribution(nowcast1, win_size)
+betas2 <- extract_reporting_delay_distribution(nowcast2, win_size)
+betas3 <- extract_reporting_delay_distribution(nowcast3, win_size)
+
+# Plot the delay distribution
+barplot(rbind(betas1, betas2, betas3), beside = TRUE,
+        main = 'Estimated Reporting Delay Distribution',
+        col = c('blue', 'red', 'green'),
+        names.arg = seq(0, win_size - 1),
+        xlab = 'Delay (weeks)', ylab = 'Probability of Reporting Delay')
+
+legend('topright',
+       legend = c('Original Data', 'Altered - Batch Not Indicated', 'Altered - Batch Indicated'),
+       fill = c('blue', 'red', 'green'))
+```
+
+As shown in this plot, the delay distribution of the altered data is right-skewed, with a notably higher proportion of cases reported at a 4-week delay compared to the original data. However, this issue is corrected when the function is informed about the batched cases. While the green bars do not perfectly align with the blue bars, this is expected since nowcasting with the batched reporting indication does not have the original reporting dates for the batched cases. Instead, it ensures that incorrect reporting dates are not used, improving the accuracy of the delay distribution.
+
+Next, let's see the effect on the estimated incidence.
+
+## Incidence Estimates
+
+We compare the nowcasting estimates of incidence across the three scenarios:
+
+```{r, fig.width=7, fig.height=4}
+# Extract nowcasting estimates
+estimates1 <- nowcast1$estimates %>% mutate(scenario = "Original")
+estimates2 <- nowcast2$estimates %>% mutate(scenario = "Altered - Batch Not Indicated")
+estimates3 <- nowcast3$estimates %>% mutate(scenario = "Altered - Batch Indicated")
+
+# Combine estimates for visualization
+estimates <- bind_rows(estimates1, estimates2, estimates3)
+
+# Eventual cases (true counts)
+cases_per_date <- denguedat1 %>%
+  group_by(onset_week) %>%
+  summarize(count = n()) %>%
+  filter(onset_week %in% estimates1$onset_date)
+
+# Plot nowcasting estimates
+plot(estimates1$onset_date, estimates1$estimate, col = 'blue', lwd=2, type = 'l',
+     ylim = range(c(estimates$q_0.025, estimates$q_0.975)), 
+     xlab = 'Onset Date', ylab = 'Cases', main = 'Incidence Estimates')
+lines(estimates2$onset_date, estimates2$estimate, lwd=2, col = 'red')
+lines(estimates3$onset_date, estimates3$estimate, lwd=2, col = 'green')
+# Add 95% PI shaded regions
+polygon(c(estimates1$onset_date, rev(estimates1$onset_date)),
+        c(estimates1$q_0.025, rev(estimates1$q_0.975)),
+        col = rgb(0, 0, 1, 0.2), border = NA)
+polygon(c(estimates2$onset_date, rev(estimates2$onset_date)),
+        c(estimates2$q_0.025, rev(estimates2$q_0.975)),
+        col = rgb(1, 0, 0, 0.2), border = NA)
+polygon(c(estimates3$onset_date, rev(estimates3$onset_date)),
+        c(estimates3$q_0.025, rev(estimates3$q_0.975)),
+        col = rgb(0, 1, 0, 0.2), border = NA)
+points(cases_per_date$onset_week, cases_per_date$count, col = 'black', pch = 20)
+
+legend('topleft',
+       legend = c('Original Data', 
+                  'Altered - Batch Not Indicated', 
+                  'Altered - Batch Indicated', 
+                  '95% PI (Original Data)', 
+                  '95% PI (Altered - Batch Not Indicated)',
+                  '95% PI (Altered - Batch Indicated)',
+                  'Eventual Cases'),
+       col = c('blue', 'red', 'green', rgb(0, 0, 1, 0.2), rgb(1, 0, 0, 0.2), rgb(0, 1, 0, 0.2), 'black'), 
+       lwd = c(2, 2, 2, NA, NA, NA, NA), 
+       lty = c(1, 1, 1, NA, NA, NA, NA), 
+       pch = c(NA, NA, NA, 15, 15, 15, 20),
+       cex = 0.9)
+
+```
+
+As shown in this plot, indicating the batched cases to the `NobBS` function produces estimates that are closer to those obtained from the original data compared to estimates made without this indication. Regarding the 95% prediction intervals, the model that accounts for batch reporting has wider intervals than the model using the original data. This is expected, as the batch-reporting model has less information available for estimating the reporting delay distribution, leading to greater uncertainty
+
+## Conclusion
+This vignette demonstrates how version 1.1.0 of the `NobBS` package handles batch reporting effectively, preserving the accuracy of both delay distributions and incidence estimates.
+

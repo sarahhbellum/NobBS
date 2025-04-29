@@ -14,12 +14,14 @@ NobBS.strat(
   moving_window = NULL,
   max_D = NULL,
   cutoff_D = NULL,
+  add_dow_cov = FALSE,
   quiet = TRUE,
   proportion_reported = 1,
   specs = list(dist = c("Poisson", "NB"), alpha1.mean.prior = 0, alpha1.prec.prior =
     0.001, alphat.shape.prior = 0.001, alphat.rate.prior = 0.001, beta.priors = NULL,
-    param_names = NULL, conf = 0.95, dispersion.prior = NULL, nAdapt = 1000, nChains = 1,
-    nBurnin = 1000, nThin = 1, nSamp = 10000)
+    gamma.mean.prior = rep(0, 6), gamma.prec.prior = rep(0.25, 6), param_names = NULL,
+    conf = 0.95, quantiles = c(0.025, 0.25, 0.5, 0.75, 0.975), dispersion.prior = NULL,
+    nAdapt = 1000, nChains = 1, nBurnin = 1000, nThin = 1, nSamp = 10000)
 )
 }
 \arguments{
@@ -41,14 +43,16 @@ NobBS.strat(
 
 \item{cutoff_D}{Consider only delays d<=\code{max_D}? Default: TRUE. If \code{cutoff_D=TRUE}, delays beyond \code{max_D} are ignored. If \code{cutoff_D=FALSE}, \code{max_D} is interpreted as delays>=\code{max_D} but within the moving window given by \code{moving_window}.}
 
+\item{add_dow_cov}{Whether or not to add day-of-week covariates to the model}
+
 \item{quiet}{Suppress all output and progress bars from the JAGS process. Default: TRUE.}
 
 \item{proportion_reported}{A decimal greater than 0 and less than or equal to 1 representing the proportion of all cases expected to be reported. Default: 1, e.g. 100 percent of all cases will eventually be reported. For asymptomatic diseases where not all cases will ever be reported, or for outbreaks in which severe under-reporting is expected, change this to less than 1.}
 
-\item{specs}{A list with arguments specifying the Bayesian model used: \code{dist} (Default: "Poisson"), \code{beta.priors} (Default: 0.1 for each delay d), \code{nSamp} (Default: 10000), \code{nBurnin} (Default: 1000), \code{nAdapt} (Default: 1000), \code{nChains} (Default: 1), \code{nThin} (Default: 1), \code{alphat.shape.prior} (Default: 0.001), \code{alphat.rate.prior} (Default: 0.001), \code{alpha1.mean.prior} (Default: 0), \code{alpha1.prec.prior} (Default: 0.001), \code{dispersion.prior} (Default: NULL, i.e. no dispersion. Otherwise, enter c(shape,rate) for a Gamma distribution.), \code{conf} (Default: 0.95), \code{param_names} (Default: NULL, i.e. output for all parameters is provided: c("lambda","alpha","beta.logged","tau2.alpha"). See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of these parameters.).}
+\item{specs}{A list with arguments specifying the Bayesian model used: \code{dist} (Default: "Poisson"), \code{beta.priors} (Default: 0.1 for each delay d), \code{nSamp} (Default: 10000), \code{nBurnin} (Default: 1000), \code{nAdapt} (Default: 1000), \code{nChains} (Default: 1), \code{nThin} (Default: 1), \code{alphat.shape.prior} (Default: 0.001), \code{alphat.rate.prior} (Default: 0.001), \code{alpha1.mean.prior} (Default: 0), \code{alpha1.prec.prior} (Default: 0.001), \code{gamma.mean.prior} (Default: 0 for each day of the week (Monday-Saturday) - i.e. assuming initially no difference from Sunday), \code{gamma.prec.prior} (Default: 0.25 for each day of the week), \code{dispersion.prior} (Default: NULL, i.e. no dispersion. Otherwise, enter c(shape,rate) for a Gamma distribution.), \code{conf} (Default: 0.95), \code{quantiles} (Default: 5 quantiles for median, 50\% PI and 95\% PI), \code{param_names} (Default: NULL, i.e. output for all parameters is provided: c("lambda","alpha","beta.logged","tau2.alpha"). See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of these parameters.).}
 }
 \value{
-The function returns a list with the following elements: \code{estimates}, a 5-column data frame containing estimates for each date in the window of predictions (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{estimates.inflated}, a Tx4 data frame containing estimates inflated by the proportion_reported for each date in the time series (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`; \code{nowcast.post.samples}, vector of 10,000 samples from the posterior predictive distribution of the nowcast, and \code{params.post}, a 10,000xN dataframe containing 10,000 posterior samples for the "N" parameters specified in specs[["param_names"]]. See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of parameters.
+The function returns a list with the following elements: \code{estimates}, a 5-column data frame containing estimates for each date in the window of predictions (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`. If quantiles is not NULL added columns will report the estimates for the requested quantiles;  \code{estimates.inflated}, a Tx4 data frame containing estimates inflated by the proportion_reported for each date in the time series (up to "now") with corresponding date of case onset, lower and upper bounds of the prediction interval, and the number of cases for that onset date reported up to `now`. If quantiles is not NULL added columns will report the inflated estimates for the requested quantiles; \code{nowcast.post.samples}, vector of 10,000 samples from the posterior predictive distribution of the nowcast, and \code{params.post}, a 10,000xN dataframe containing 10,000 posterior samples for the "N" parameters specified in specs[["param_names"]]. See McGough et al. 2019 (https://www.biorxiv.org/content/10.1101/663823v1) for detailed explanation of parameters.
 }
 \description{
 Produces nowcasts stratified by a single variable of interest, e.g. by geographic unit (province/state/region) or by age group.
