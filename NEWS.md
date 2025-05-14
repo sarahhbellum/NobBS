@@ -1,3 +1,10 @@
+# NobBS v. 1.1.0
+Updates from v1.0.0 include:
+Quantile estimates - NobBS now returns quantile estimates to support quantile-based evaluation metrics such as the Weighted Interval Score (WIS).
+Batched reports - Added functionality to handle batched reporting of cases.
+Day-of-the-week effect - Incorporated adjustments to account for systematic variations in reporting by day of the week.
+Three new vignettes have been added to demonstrate the usage of these features.
+The package maintainer has changed from Sarah McGough to Rami Yaari.
 
 # NobBS v. 1.0.0
 
