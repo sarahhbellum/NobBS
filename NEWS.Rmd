@@ -1,6 +1,12 @@
 ---
 output: github_document
 ---
+
+# NobBS v. 1.1.2
+Updates from v1.1.0:
+New maintainer
+Fixed tibble compatibility in `NobBS()` and `NobBS.strat()` by replacing single-column `data[, col]` extraction with vector-safe `data[[col]]` access.
+
 # NobBS v. 1.1.0
 Updates from v1.0.0 include:
 Quantile estimates - NobBS now returns quantile estimates to support quantile-based evaluation metrics such as the Weighted Interval Score (WIS).
