@@ -68,20 +68,47 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
     stop("'Now' argument must be of datatype Date (as.Date)")
   }
 
+  # Check that onset_date and report_date and strata columns exist in data
+  if (!onset_date %in% names(data)) {
+    stop("`onset_date` must name a column in `data`.")
+  }
+
+  if (!report_date %in% names(data)) {
+    stop("`report_date` must name a column in `data`.")
+  }
+
+  if (!strata %in% names(data)) {
+    stop("`strata` must name a column in `data`.")
+  }
+
+  # Extract onset_date and report_date strata_vec as vectors
+  onset_vec <- data[[onset_date]]
+  report_vec <- data[[report_date]]
+  strata_vec <- data[[strata]]
+
+  # make sure onset_vec and report_vec are of type Date
+  if (!inherits(onset_vec, "Date")) {
+    stop("The `onset_date` column must be of class Date.")
+  }
+
+  if (!inherits(report_vec, "Date")) {
+    stop("The `report_date` column must be of class Date.")
+  }
+
   # Check that "now" is possible in the sequence of reporting data
-  if(dplyr::last(seq(min(data[,onset_date]),now,by=units))!=now){
-    stop("The date `now` is not possible to estimate: the possible nowcast dates are seq(unique(data[,onset_date])[1],now,by=units).")
+  if(dplyr::last(seq(min(onset_vec),now,by=units))!=now){
+    stop("The date `now` is not possible to estimate: the possible nowcast dates are seq(unique(data[[onset_date]])[1],now,by=units).")
   }
 
   # Print date
   message(paste("Computing a nowcast for ",now))
   # Define "T", the length of dates between the first date of data and "now", making sure that "T" is unaffected by skipped-over dates in the time series
   # If the moving window is specified, "T" considers only the dates within the moving window; otherwise considers all historical data
-  now.T <- ifelse(is.null(moving_window),length(seq(min(data[,onset_date]),as.Date(now),by=units)),
+  now.T <- ifelse(is.null(moving_window),length(seq(min(onset_vec),as.Date(now),by=units)),
                   moving_window)
 
   # Define the strata
-  strat <- unique(data[,strata])
+  strat <- unique(strata_vec)
   S <- length(strat)
 
   # Check the default arguments
@@ -179,10 +206,13 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
   unit.num <- switch(units, "1 day"=1,"1 week"=7)
   w.days <- max((moving_window-1)*unit.num,(now.T-1)*unit.num) # moving window converted to days
 
-  sel_rows <- (data[,onset_date]<=now) & (data[,onset_date]>=now-w.days) & (data[,report_date]<=now) & (data[,report_date]>=now-w.days)
+  sel_rows <- (onset_vec<=now) & (onset_vec>=now-w.days) & (report_vec<=now) & (report_vec>=now-w.days)
   realtime.data <- subset(data,sel_rows)
-  realtime.data$week.t <- (as.numeric(realtime.data[,onset_date]-min(realtime.data[,onset_date]))/unit.num)+1
-  realtime.data$delay <- as.numeric(realtime.data[,report_date]-realtime.data[,onset_date])/unit.num
+  realtime_onset_vec <- realtime.data[[onset_date]]
+  realtime_report_vec <- realtime.data[[report_date]]
+  realtime_strata_vec <- realtime.data[[strata]]
+  realtime.data$week.t <- (as.numeric(realtime_onset_vec-min(realtime_onset_vec))/unit.num)+1
+  realtime.data$delay <- as.numeric(realtime_report_vec-realtime_onset_vec)/unit.num
 
   if(cutoff_D==FALSE){
     realtime.data$delay <- ifelse(realtime.data$delay>=max_D,max_D,realtime.data$delay)
@@ -201,11 +231,11 @@ NobBS.strat <- function(data, now, units, onset_date, report_date, strata, movin
   batch_cases <- matrix(0, nrow=now.T, ncol=length(strat))
   for (t in 1:now.T) {
     for(s in 1:length(strat)){
-      batch_cases[t,s] <- nrow(realtime.data[which(realtime.data$week.t==t & realtime.data[,strata] == strat[s] & realtime.data$batched==TRUE),])
+      batch_cases[t,s] <- nrow(realtime.data[which(realtime.data$week.t==t & realtime_strata_vec == strat[s] & realtime.data$batched==TRUE),])
       for (d in 0:max_D) {
         reporting.triangle.strat[t, s, (d + 1)] <- nrow(realtime.data[which(realtime.data$week.t == t &
                                                                               realtime.data$delay == d &
-                                                                              realtime.data[,strata] == strat[s] &
+                                                                              realtime_strata_vec == strat[s] &
                                                                               realtime.data$batched==FALSE), ])
         if (now.T < (t + d)) {
           reporting.triangle.strat[t, s, (d + 1)] <- NA

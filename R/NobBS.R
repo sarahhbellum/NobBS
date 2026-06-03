@@ -68,16 +68,37 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
     stop("'Now' argument must be of datatype Date (as.Date)")
   }
 
+  # Check that onset_date and report_date columns exist in data
+  if (!onset_date %in% names(data)) {
+    stop("`onset_date` must name a column in `data`.")
+  }
+
+  if (!report_date %in% names(data)) {
+    stop("`report_date` must name a column in `data`.")
+  }
+
+  # Extract onset_date and report_date as vectors and make sure they are of type Date
+  onset_vec <- data[[onset_date]]
+  report_vec <- data[[report_date]]
+
+  if (!inherits(onset_vec, "Date")) {
+    stop("The `onset_date` column must be of class Date.")
+  }
+
+  if (!inherits(report_vec, "Date")) {
+    stop("The `report_date` column must be of class Date.")
+  }
+
   # Check that "now" is possible in the sequence of reporting data
-  if(dplyr::last(seq(unique(data[,onset_date])[1],now,by=units))!=now){
-    stop("The date `now` is not possible to estimate: the possible nowcast dates are seq(unique(data[,onset_date])[1],now,by=units).")
+  if(dplyr::last(seq(unique(onset_vec)[1],now,by=units))!=now){
+    stop("The date `now` is not possible to estimate: the possible nowcast dates are seq(unique(data[[onset_date]])[1],now,by=units).")
   }
 
   # Print date
   message(paste("Computing a nowcast for ",now))
   # Define "T", the length of dates between the first date of data and "now", making sure that "T" is unaffected by skipped-over dates in the time series
   # If the moving window is specified, "T" considers only the dates within the moving window; otherwise considers all historical data
-  now.T <- ifelse(is.null(moving_window),length(seq(min(data[,onset_date]),as.Date(now),by=units)),
+  now.T <- ifelse(is.null(moving_window),length(seq(min(onset_vec),as.Date(now),by=units)),
                   moving_window)
 
   # Check the default arguments
@@ -175,10 +196,12 @@ NobBS <- function(data, now, units, onset_date, report_date, moving_window=NULL,
   unit.num <- switch(units, "1 day"=1,"1 week"=7)
   w.days <- max((moving_window-1)*unit.num,(now.T-1)*unit.num) # moving window converted to days
 
-  sel_rows <- (data[,onset_date]<=now) & (data[,onset_date]>=now-w.days) & (data[,report_date]<=now) & (data[,report_date]>=now-w.days)
-  realtime.data <- subset(data,sel_rows)
-  realtime.data$week.t <- (as.numeric(realtime.data[,onset_date]-min(realtime.data[,onset_date]))/unit.num)+1
-  realtime.data$delay <- as.numeric(realtime.data[,report_date]-realtime.data[,onset_date])/unit.num
+  sel_rows <- (onset_vec<=now) & (onset_vec>=now-w.days) & (report_vec<=now) & (report_vec>=now-w.days)
+  realtime.data <- data[sel_rows, , drop = FALSE]
+  realtime_onset_vec <- realtime.data[[onset_date]]
+  realtime_report_vec <- realtime.data[[report_date]]
+  realtime.data$week.t <- (as.numeric(realtime_onset_vec-min(realtime_onset_vec))/unit.num)+1
+  realtime.data$delay <- as.numeric(realtime_report_vec-realtime_onset_vec)/unit.num
 
   if(cutoff_D==FALSE){
     realtime.data$delay <- ifelse(realtime.data$delay>=max_D,max_D,realtime.data$delay)
